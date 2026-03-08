@@ -1,0 +1,36 @@
+{
+  "name": "carenav-ai",
+  "version": "1.0.0",
+  "description": "AI-powered OPD workflow optimization system for Indian healthcare",
+  "scripts": {
+    "build": "tsc",
+    "cdk": "cdk",
+    "deploy": "cdk deploy --all",
+    "destroy": "cdk destroy --all"
+  },
+  "keywords": [
+    "healthcare",
+    "ai",
+    "aws",
+    "bedrock",
+    "serverless"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "aws-cdk": "^2.120.0",
+    "esbuild": "^0.27.3",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1004.0",
+    "@aws-sdk/client-comprehendmedical": "^3.1004.0",
+    "@aws-sdk/client-lambda": "^3.1004.0",
+    "@google/generative-ai": "^0.21.0",
+    "aws-cdk-lib": "^2.120.0",
+    "axios": "^1.13.6",
+    "constructs": "^10.3.0",
+    "node-fetch": "^2.7.0"
+  }
+}

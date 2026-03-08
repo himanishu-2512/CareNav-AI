@@ -1,0 +1,145 @@
+digraph CareNavAI {
+    // Graph settings
+    rankdir=TB;
+    compound=true;
+    newrank=true;
+    splines=ortho;
+    nodesep=0.8;
+    ranksep=1.2;
+    
+    // Node defaults
+    node [shape=box, style="rounded,filled", fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=9];
+    
+    // Users Layer
+    subgraph cluster_users {
+        label="Users Layer";
+        style=filled;
+        color=lightgrey;
+        
+        patient [label="Patients\n(Web Browser)", fillcolor="#E8F5E9", shape=box];
+        doctor [label="Doctors\n(Web Browser)", fillcolor="#E8F5E9", shape=box];
+    }
+    
+    // Frontend Layer
+    subgraph cluster_frontend {
+        label="Frontend Layer";
+        style=filled;
+        color="#FFF3E0";
+        
+        amplify [label="AWS Amplify\nReact Web App", fillcolor="#FF9800", fontcolor=white];
+    }
+    
+    // API Gateway Layer
+    subgraph cluster_api {
+        label="API Gateway Layer";
+        style=filled;
+        color="#E1F5FE";
+        
+        apigateway [label="Amazon API Gateway\nREST API\n• JWT Auth\n• Rate Limiting\n• CORS", fillcolor="#0288D1", fontcolor=white];
+    }
+    
+    // Compute Layer
+    subgraph cluster_compute {
+        label="Serverless Compute Layer (AWS Lambda)";
+        style=filled;
+        color="#FFF9C4";
+        
+        symptom_lambda [label="Symptom\nProcessor", fillcolor="#FBC02D"];
+        navigation_lambda [label="Care\nNavigation", fillcolor="#FBC02D"];
+        treatment_lambda [label="Treatment\nPlanner", fillcolor="#FBC02D"];
+        report_lambda [label="Report\nProcessor", fillcolor="#FBC02D"];
+        auth_lambda [label="Auth\nHandler", fillcolor="#FBC02D"];
+        reminder_lambda [label="Reminder\nProcessor", fillcolor="#FBC02D"];
+    }
+    
+    // AI/ML Services Layer
+    subgraph cluster_ai {
+        label="AI/ML Services";
+        style=filled;
+        color="#F3E5F5";
+        
+        bedrock [label="Amazon Bedrock\nClaude 3\n• Symptom Extraction\n• Follow-up Questions\n• Dept Recommendations\n• Summarization", fillcolor="#9C27B0", fontcolor=white];
+        transcribe [label="Amazon\nTranscribe\nVoice-to-Text", fillcolor="#9C27B0", fontcolor=white];
+        textract [label="Amazon\nTextract\nOCR", fillcolor="#9C27B0", fontcolor=white];
+    }
+    
+    // Data & Storage Layer
+    subgraph cluster_data {
+        label="Data & Storage Layer";
+        style=filled;
+        color="#E0F2F1";
+        
+        dynamodb [label="Amazon DynamoDB\n• Patients\n• Symptoms\n• Treatments\n• Sessions\n• Dose Records", fillcolor="#00897B", fontcolor=white];
+        s3 [label="Amazon S3\nMedical Reports\nEncrypted at Rest", fillcolor="#00897B", fontcolor=white];
+        eventbridge [label="Amazon EventBridge\nMedication Reminders\nScheduled Rules", fillcolor="#00897B", fontcolor=white];
+    }
+    
+    // Security & Monitoring Layer
+    subgraph cluster_security {
+        label="Security & Monitoring";
+        style=filled;
+        color="#FFEBEE";
+        
+        iam [label="AWS IAM\nRoles & Policies\nLeast Privilege", fillcolor="#D32F2F", fontcolor=white];
+        secrets [label="AWS Secrets\nManager\nJWT Keys", fillcolor="#D32F2F", fontcolor=white];
+        cloudwatch [label="Amazon CloudWatch\nLogs, Metrics\nAlarms", fillcolor="#D32F2F", fontcolor=white];
+        kms [label="AWS KMS\nEncryption", fillcolor="#D32F2F", fontcolor=white];
+    }
+    
+    // User to Frontend connections
+    patient -> amplify [label="HTTPS"];
+    doctor -> amplify [label="HTTPS"];
+    
+    // Frontend to API Gateway
+    amplify -> apigateway [label="REST API"];
+    
+    // API Gateway to Lambda functions
+    apigateway -> symptom_lambda [label="POST /symptoms"];
+    apigateway -> navigation_lambda [label="POST /navigation"];
+    apigateway -> treatment_lambda [label="POST /treatment"];
+    apigateway -> report_lambda [label="POST /reports"];
+    apigateway -> auth_lambda [label="POST /auth"];
+    
+    // Lambda to AI Services
+    symptom_lambda -> bedrock [label="Extract\nSymptoms"];
+    symptom_lambda -> transcribe [label="Voice\nInput"];
+    navigation_lambda -> bedrock [label="Dept\nRecommend"];
+    treatment_lambda -> bedrock [label="Generate\nSchedule"];
+    report_lambda -> textract [label="OCR\nExtract"];
+    report_lambda -> bedrock [label="Summarize\nReport"];
+    
+    // Lambda to Data Layer
+    symptom_lambda -> dynamodb [label="Store"];
+    navigation_lambda -> dynamodb [label="Store"];
+    treatment_lambda -> dynamodb [label="Store"];
+    treatment_lambda -> eventbridge [label="Create\nRules"];
+    report_lambda -> s3 [label="Upload"];
+    report_lambda -> dynamodb [label="Store"];
+    auth_lambda -> dynamodb [label="Sessions"];
+    
+    // EventBridge to Reminder Lambda
+    eventbridge -> reminder_lambda [label="Scheduled\nTrigger"];
+    reminder_lambda -> dynamodb [label="Mark\nDue"];
+    
+    // Security connections (dashed)
+    iam -> symptom_lambda [style=dashed, label="Authorize"];
+    iam -> navigation_lambda [style=dashed];
+    iam -> treatment_lambda [style=dashed];
+    iam -> report_lambda [style=dashed];
+    iam -> auth_lambda [style=dashed];
+    iam -> reminder_lambda [style=dashed];
+    
+    secrets -> auth_lambda [style=dashed, label="JWT Secret"];
+    
+    cloudwatch -> apigateway [style=dashed, label="Logs"];
+    cloudwatch -> symptom_lambda [style=dashed, label="Metrics"];
+    
+    kms -> dynamodb [style=dashed, label="Encrypt"];
+    kms -> s3 [style=dashed, label="Encrypt"];
+    
+    // Region label
+    label="\n\nCareNav AI - AWS Architecture\nDeployment Region: AWS Mumbai (ap-south-1)\n";
+    fontsize=14;
+    labelloc=b;
+}
