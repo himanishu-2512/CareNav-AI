@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from '../lib/axios';
-import { useAuth } from '../contexts/AuthContext';
 import Header from './Header';
 
 interface Prescription {
@@ -40,7 +39,6 @@ interface PatientInfo {
 }
 
 export const TreatmentPlanner: React.FC = () => {
-  const { user } = useAuth();
   const { planId } = useParams<{ planId?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,23 +47,12 @@ export const TreatmentPlanner: React.FC = () => {
   const [plans, setPlans] = useState<TreatmentPlan[]>([]);
   const [noPlanMedicines, setNoPlanMedicines] = useState<TreatmentPlan | null>(null);
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
   // Search state
   const [searchPatientId, setSearchPatientId] = useState('');
   const [patient, setPatient] = useState<PatientInfo | null>(null);
   const [searching, setSearching] = useState(false);
-
-  const frequencyOptions = [
-    'once daily',
-    'twice daily',
-    'three times daily',
-    'every 4 hours',
-    'every 6 hours',
-    'every 8 hours',
-    'every 12 hours',
-  ];
 
   useEffect(() => {
     if (planId && locationState?.patientId) {
@@ -190,15 +177,6 @@ export const TreatmentPlanner: React.FC = () => {
     setExpandedPlanId(expandedPlanId === treatmentPlanId ? null : treatmentPlanId);
   };
 
-  const canEdit = (plan: TreatmentPlan) => {
-    return plan.doctorId === user?.userId;
-  };
-
-  const isActivePlan = (plan: TreatmentPlan) => {
-    const now = new Date();
-    return plan.prescriptions.some(med => new Date(med.stopDate) > now);
-  };
-
   // Calculate duration from start and stop dates
   const calculateDuration = (start: string, stop: string) => {
     const startDate = new Date(start);
@@ -208,7 +186,7 @@ export const TreatmentPlanner: React.FC = () => {
     return `${diffDays} days`;
   };
 
-  const renderMedicineCard = (medicine: Prescription, planId: string, editable: boolean) => {
+  const renderMedicineCard = (medicine: Prescription) => {
     // Read-only view - no editing allowed in TreatmentPlanner
     return (
       <div key={medicine.medicineId} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -324,7 +302,7 @@ export const TreatmentPlanner: React.FC = () => {
                 {expandedPlanId === 'no-plan' && (
                   <div className="px-6 py-4 space-y-3">
                     {noPlanMedicines.prescriptions.map((medicine) =>
-                      renderMedicineCard(medicine, 'no-plan', false)
+                      renderMedicineCard(medicine)
                     )}
                   </div>
                 )}
@@ -366,7 +344,7 @@ export const TreatmentPlanner: React.FC = () => {
                       ) : (
                         <div className="space-y-3">
                           {plan.prescriptions.map((medicine) =>
-                            renderMedicineCard(medicine, plan.treatmentPlanId, false)
+                            renderMedicineCard(medicine)
                           )}
                         </div>
                       )}

@@ -4,17 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePatients } from '../contexts/PatientContext';
 import Header from './Header';
 
-interface PatientListItem {
-  patientId: string;
-  uhid: string;
-  name: string;
-  lastConsultation: string;
-  treatmentStatus: 'ongoing' | 'past';
-  unreadMessages: number;
-  trackedSymptomId?: string;
-  trackedDiseaseName?: string;
-}
-
 interface PatientDetail {
   patient: {
     patientId: string;
