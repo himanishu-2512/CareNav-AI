@@ -471,27 +471,32 @@ export default function PatientTreatmentPlans() {
           </button>
         </div>
 
-        {patient && (
-          <div className="bg-white shadow rounded-lg p-6 mb-6">
-            <div className="flex items-center justify-between">
+        <div className="bg-white shadow rounded-lg p-6 mb-6">
+          <div className="flex items-center justify-between">
+            {patient ? (
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{patient.name}</h1>
                 <p className="text-sm text-gray-600 mt-1">
                   {patient.age} years • {patient.gender} • {patient.contact}
                 </p>
               </div>
-              <button
-                onClick={handleCreatePlan}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Create Treatment Plan
-              </button>
-            </div>
+            ) : (
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Patient Treatment Plans</h1>
+                <p className="text-sm text-gray-600 mt-1">Loading patient information...</p>
+              </div>
+            )}
+            <button
+              onClick={handleCreatePlan}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create Treatment Plan
+            </button>
           </div>
-        )}
+        </div>
 
         {error && (
           <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4">
