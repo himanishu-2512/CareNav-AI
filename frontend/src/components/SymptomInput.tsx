@@ -28,7 +28,7 @@ export default function SymptomInput() {
   const [symptomText, setSymptomText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showVoiceMessage, setShowVoiceMessage] = useState(false);
+  const [, setShowVoiceMessage] = useState(false);
   const [structuredSymptoms, setStructuredSymptoms] = useState<StructuredSymptoms | null>(null);
   const [symptomId, setSymptomId] = useState<string | null>(null);
   const [followUpQuestions, setFollowUpQuestions] = useState<Array<{
@@ -126,29 +126,17 @@ export default function SymptomInput() {
       <Header />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Demo Data Warning */}
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-yellow-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                <strong>DEMO DATA ONLY</strong> - Do not enter real medical information.
-                This system is for demonstration purposes only.
-              </p>
-            </div>
-          </div>
+        {/* Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+          >
+            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Dashboard
+          </button>
         </div>
 
         <div className="bg-white shadow rounded-lg p-6">
@@ -239,16 +227,8 @@ export default function SymptomInput() {
                       d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
                     />
                   </svg>
-                  Use Voice Input (Demo)
+                  Use Voice Input
                 </button>
-
-                {showVoiceMessage && (
-                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                    <p className="text-sm text-blue-700 text-center">
-                      Voice input is a placeholder feature for demonstration purposes.
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Submit Button */}
@@ -381,18 +361,6 @@ export default function SymptomInput() {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Disclaimer */}
-        <div className="mt-6 bg-white shadow rounded-lg p-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-2">
-            Important Notice
-          </h3>
-          <p className="text-sm text-gray-600">
-            This system does not diagnose diseases or provide medical advice. The symptom
-            structuring is for workflow assistance only. Always consult a qualified healthcare
-            provider for medical advice, diagnosis, and treatment.
-          </p>
         </div>
       </main>
     </div>

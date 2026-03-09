@@ -19,6 +19,11 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return await handleGetPatientSummary(event);
     }
 
+    // Handle red flags endpoint
+    if (event.httpMethod === 'GET' && event.path.includes('/red-flags')) {
+      return await handleGetRedFlags(event);
+    }
+
     // Handle patient registration endpoint
     if (event.httpMethod === 'POST' && event.path.includes('/register')) {
       return await handlePatientRegistration(event);
@@ -146,6 +151,41 @@ async function handleGetPatientSummary(event: APIGatewayProxyEvent): Promise<API
     console.error('Error getting patient summary:', error);
     return errorResponse(
       error.message || 'Failed to get patient summary',
+      500
+    );
+  }
+}
+
+/**
+ * Handle get red flags for a patient
+ */
+async function handleGetRedFlags(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  // Extract patientId from path
+  const pathParts = event.path.split('/');
+  const patientIdIndex = pathParts.indexOf('patients') + 1;
+  const patientId = pathParts[patientIdIndex];
+
+  if (!patientId) {
+    return errorResponse('Patient ID is required', 400);
+  }
+
+  try {
+    console.log(`Getting red flags for patient ${patientId}`);
+    
+    const summary = await getPatientSummaryWithRedFlags(patientId);
+
+    if (!summary.patient) {
+      return errorResponse('Patient not found', 404);
+    }
+
+    return successResponse({
+      redFlags: summary.redFlags,
+      totalRedFlags: summary.redFlags.length
+    });
+  } catch (error: any) {
+    console.error('Error getting red flags:', error);
+    return errorResponse(
+      error.message || 'Failed to get red flags',
       500
     );
   }

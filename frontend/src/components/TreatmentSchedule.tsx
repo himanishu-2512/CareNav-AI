@@ -10,18 +10,20 @@ interface Dose {
 
 interface Medicine {
   medicineId: string;
-  name: string;
+  medicineName: string;
   dosage: string;
-  frequency: string;
-  startDate: string;
+  frequency?: string;
+  startDate?: string;
   stopDate: string;
   specialInstructions?: string;
   todayDoses: Dose[];
+  planName?: string;
+  treatmentPlanId?: string;
 }
 
 interface CompletedTreatment {
   medicineId: string;
-  name: string;
+  medicineName: string;
   dosage: string;
   completedDate: string;
   adherenceRate: number;
@@ -34,6 +36,8 @@ export const TreatmentSchedule: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [markingDose, setMarkingDose] = useState<string | null>(null);
+  const [editingMedicine, setEditingMedicine] = useState<string | null>(null);
+  const [editedTimes, setEditedTimes] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     fetchSchedule();
@@ -64,10 +68,14 @@ export const TreatmentSchedule: React.FC = () => {
     setError('');
 
     try {
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date().toISOString().split('T')[0];
+      
       await axios.post('/treatment/mark-taken', {
         patientId: user.userId,
         medicineId,
-        doseTime,
+        scheduledDate: today,
+        scheduledTime: doseTime,
       });
 
       // Refresh schedule after marking dose
@@ -77,6 +85,37 @@ export const TreatmentSchedule: React.FC = () => {
     } finally {
       setMarkingDose(null);
     }
+  };
+
+  // const handleEditTime = (medicineId: string, doseIndex: number, currentTime: string) => {
+  //   setEditingMedicine(medicineId);
+  //   const key = `${medicineId}-${doseIndex}`;
+  //   setEditedTimes({ ...editedTimes, [key]: currentTime });
+  // };
+
+  const handleSaveTime = (medicineId: string, doseIndex: number) => {
+    const key = `${medicineId}-${doseIndex}`;
+    const newTime = editedTimes[key];
+    
+    if (!newTime) return;
+
+    // Update the medicine's dose time locally
+    setActiveMedicines(prev => prev.map(med => {
+      if (med.medicineId === medicineId) {
+        const updatedDoses = [...med.todayDoses];
+        updatedDoses[doseIndex] = { ...updatedDoses[doseIndex], time: newTime };
+        return { ...med, todayDoses: updatedDoses };
+      }
+      return med;
+    }));
+
+    setEditingMedicine(null);
+    setEditedTimes({});
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMedicine(null);
+    setEditedTimes({});
   };
 
   const groupMedicinesByTime = () => {
@@ -151,20 +190,17 @@ export const TreatmentSchedule: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      {/* Demo Data Warning */}
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-yellow-700">
-              DEMO DATA ONLY - This is a demonstration system. Do not use for actual medication management.
-            </p>
-          </div>
-        </div>
+      {/* Back Button */}
+      <div className="mb-6">
+        <button
+          onClick={() => window.history.back()}
+          className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+        >
+          <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
       </div>
 
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Treatment Schedule</h1>
@@ -200,8 +236,13 @@ export const TreatmentSchedule: React.FC = () => {
                               <div className="flex items-start space-x-3">
                                 {getDoseStatusIcon(dose.status)}
                                 <div>
-                                  <h4 className="font-medium text-gray-900">{medicine.name}</h4>
+                                  <h4 className="font-medium text-gray-900">{medicine.medicineName}</h4>
                                   <p className="text-sm text-gray-600">{medicine.dosage}</p>
+                                  {medicine.planName && (
+                                    <p className="text-xs text-purple-600 mt-1">
+                                      📋 Plan: {medicine.planName}
+                                    </p>
+                                  )}
                                   {medicine.specialInstructions && (
                                     <p className="text-sm text-blue-600 mt-1">
                                       ⓘ {medicine.specialInstructions}
@@ -241,21 +282,87 @@ export const TreatmentSchedule: React.FC = () => {
             <div className="space-y-4">
               {activeMedicines.map((medicine) => (
                 <div key={medicine.medicineId} className="p-4 border border-gray-200 rounded-lg">
-                  <h3 className="font-medium text-gray-900">{medicine.name}</h3>
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <h3 className="font-medium text-gray-900">{medicine.medicineName}</h3>
+                      {medicine.planName && (
+                        <p className="text-xs text-purple-600 mt-1">
+                          📋 Plan: {medicine.planName}
+                        </p>
+                      )}
+                    </div>
+                    {editingMedicine !== medicine.medicineId && (
+                      <button
+                        onClick={() => setEditingMedicine(medicine.medicineId)}
+                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      >
+                        Edit Times
+                      </button>
+                    )}
+                  </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-600">
                     <div>
                       <span className="font-medium">Dosage:</span> {medicine.dosage}
                     </div>
-                    <div>
-                      <span className="font-medium">Frequency:</span> {medicine.frequency}
-                    </div>
-                    <div>
-                      <span className="font-medium">Start Date:</span> {medicine.startDate}
-                    </div>
+                    {medicine.frequency && (
+                      <div>
+                        <span className="font-medium">Frequency:</span> {medicine.frequency}
+                      </div>
+                    )}
+                    {medicine.startDate && (
+                      <div>
+                        <span className="font-medium">Start Date:</span> {medicine.startDate}
+                      </div>
+                    )}
                     <div>
                       <span className="font-medium">End Date:</span> {medicine.stopDate}
                     </div>
                   </div>
+                  
+                  {/* Dose Times */}
+                  <div className="mt-3">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Scheduled Times:</p>
+                    <div className="space-y-2">
+                      {medicine.todayDoses.map((dose, index) => {
+                        const key = `${medicine.medicineId}-${index}`;
+                        const isEditing = editingMedicine === medicine.medicineId;
+                        
+                        return (
+                          <div key={index} className="flex items-center gap-2">
+                            {isEditing ? (
+                              <>
+                                <input
+                                  type="time"
+                                  value={editedTimes[key] || dose.time}
+                                  onChange={(e) => setEditedTimes({ ...editedTimes, [key]: e.target.value })}
+                                  className="px-3 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <button
+                                  onClick={() => handleSaveTime(medicine.medicineId, index)}
+                                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                                >
+                                  Save
+                                </button>
+                                {index === 0 && (
+                                  <button
+                                    onClick={handleCancelEdit}
+                                    className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
+                                  >
+                                    Cancel
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm font-medium">
+                                {dose.time}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
                   {medicine.specialInstructions && (
                     <div className="mt-2 p-2 bg-blue-50 rounded text-sm text-blue-700">
                       <span className="font-medium">Special Instructions:</span> {medicine.specialInstructions}
@@ -285,7 +392,7 @@ export const TreatmentSchedule: React.FC = () => {
               <div key={treatment.medicineId} className="p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-medium text-gray-900">{treatment.name}</h3>
+                    <h3 className="font-medium text-gray-900">{treatment.medicineName}</h3>
                     <p className="text-sm text-gray-600">{treatment.dosage}</p>
                     <p className="text-xs text-gray-500 mt-1">
                       Completed on {treatment.completedDate}

@@ -1,5 +1,6 @@
 // Symptom Processor Lambda Handler
 // Handles symptom input, extraction, and follow-up question generation
+// Updated: 2026-03-09 01:30 AM - Fixed 5 questions per round (FORCE REBUILD v2)
 
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { successResponse, errorResponse, validateRequiredFields } from '../shared/response';
@@ -81,7 +82,8 @@ async function handleSymptomInput(body: any): Promise<APIGatewayProxyResult> {
       questionId: q.questionId,
       questionText: q.questionText,
       questionType: q.questionType,
-      options: q.options
+      options: q.options,
+      tags: q.tags || []
     }));
 
     return successResponse({
@@ -135,8 +137,8 @@ async function handleFollowUpAnswer(body: any): Promise<APIGatewayProxyResult> {
     // Determine which round we're on based on total answers
     const totalAnswers = updatedSymptom.followUpAnswers?.length || 0;
     
-    if (totalAnswers < 20) {
-      // Generate next round of questions (Rounds 2, 3, or 4)
+    if (totalAnswers < 10) {
+      // Generate next round of questions (Round 2 only - reduced from 4 rounds to 2)
       const roundNumber = Math.floor(totalAnswers / 5) + 1;
       console.log(`Round ${roundNumber} complete, generating round ${roundNumber + 1} questions...`);
       
@@ -156,7 +158,8 @@ async function handleFollowUpAnswer(body: any): Promise<APIGatewayProxyResult> {
           questionId: q.questionId,
           questionText: q.questionText,
           questionType: q.questionType,
-          options: q.options
+          options: q.options,
+          tags: q.tags || []
         }));
         
         return successResponse({
@@ -167,22 +170,43 @@ async function handleFollowUpAnswer(body: any): Promise<APIGatewayProxyResult> {
           refinedDiseases: refinedAnalysis.refinedDiseases,
           confidenceScore: refinedAnalysis.confidenceScore,
           round: refinedAnalysis.round,
-          message: `Please answer these additional questions for better diagnosis (Round ${refinedAnalysis.round} of 4)`
+          message: `Please answer these additional questions for better diagnosis (Round ${refinedAnalysis.round} of 2)`
         });
       } catch (analysisError: any) {
-        console.error('Error generating additional questions:', analysisError);
-        // Return success but without additional questions
-        return successResponse({
-          symptomId: updatedSymptom.symptomId,
-          updatedSymptoms: updatedSymptom.structuredSymptoms,
-          followUpAnswers: updatedSymptom.followUpAnswers,
-          round: 'complete',
-          message: 'Analysis complete. You can now proceed to care navigation.'
-        });
+        console.error('CRITICAL ERROR generating additional questions:', analysisError);
+        console.error('Error stack:', analysisError.stack);
+        console.error('Error details:', JSON.stringify(analysisError, null, 2));
+        
+        // Return error response instead of silently failing
+        return errorResponse(
+          `Failed to generate additional questions: ${analysisError.message}. Please try again or contact support.`,
+          500
+        );
       }
-    } else if (totalAnswers >= 20) {
-      // All 20 questions answered - generate AI summary and return final analysis
-      console.log('All 20 questions answered, generating AI summary...');
+    } else if (totalAnswers >= 10) {
+      // All 10 questions answered - generate department prediction and final analysis
+      console.log('All 10 questions answered, generating department prediction and AI summary...');
+      
+      let departmentRecommendation = null;
+      let isEmergency = false;
+      
+      try {
+        // Generate department prediction
+        const { predictDepartment } = await import('../shared/department-predictor');
+        const prediction = await predictDepartment(
+          updatedSymptom.rawText,
+          updatedSymptom.structuredSymptoms,
+          updatedSymptom.followUpAnswers || [],
+          updatedSymptom.diseaseAnalysis || []
+        );
+        
+        departmentRecommendation = prediction.department;
+        isEmergency = prediction.isEmergency;
+        
+        console.log(`Department predicted: ${departmentRecommendation}, Emergency: ${isEmergency}`);
+      } catch (predictionError) {
+        console.error('Error predicting department:', predictionError);
+      }
       
       try {
         const { generateSymptomSummary, generateBriefSummary } = await import('../shared/symptom-summarizer');
@@ -219,7 +243,11 @@ async function handleFollowUpAnswer(body: any): Promise<APIGatewayProxyResult> {
         finalDiseases: updatedSymptom.diseaseAnalysis,
         confidenceScore: 0.95,
         round: 'complete',
-        message: 'Analysis complete. You can now proceed to care navigation.'
+        departmentRecommendation,
+        isEmergency,
+        message: isEmergency 
+          ? `⚠️ EMERGENCY: Please visit ${departmentRecommendation} immediately!`
+          : `Analysis complete. Recommended department: ${departmentRecommendation}`
       });
     } else {
       // Fallback case - should not reach here
@@ -331,6 +359,48 @@ async function handleSymptomDelete(event: APIGatewayProxyEvent): Promise<APIGate
 }
 
 /**
+ * POST /api/symptoms/predict-department
+ * Predict department without saving to history
+ */
+async function handlePredictDepartment(body: any): Promise<APIGatewayProxyResult> {
+  const validation = validateRequiredFields(body, ['symptomText']);
+  if (!validation.valid) {
+    return errorResponse('symptomText is required', 400);
+  }
+
+  const { symptomText } = body;
+
+  try {
+    // Use the department predictor to analyze symptoms
+    const { predictDepartment } = await import('../shared/department-predictor');
+    
+    // Provide minimal structured data for department prediction
+    const structuredSymptoms = {
+      bodyPart: 'unknown',
+      severity: 'moderate',
+      duration: 'unknown'
+    };
+    
+    const prediction = await predictDepartment(
+      symptomText,
+      structuredSymptoms,
+      [], // No follow-up answers
+      []  // No disease candidates yet
+    );
+
+    return successResponse({
+      department: prediction.department,
+      confidence: prediction.confidence,
+      isEmergency: prediction.isEmergency,
+      reasoning: prediction.reasoning || 'Based on symptom analysis'
+    });
+  } catch (error: any) {
+    console.error('Department prediction failed:', error);
+    return errorResponse('Failed to predict department', 500);
+  }
+}
+
+/**
  * Main Lambda handler
  * Routes requests based on HTTP method and path
  */
@@ -346,6 +416,10 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     if (path === '/api/symptoms/input' && event.httpMethod === 'POST') {
       return await handleSymptomInput(body);
+    }
+
+    if (path === '/api/symptoms/predict-department' && event.httpMethod === 'POST') {
+      return await handlePredictDepartment(body);
     }
 
     if (path === '/api/symptoms/followup/answer' && event.httpMethod === 'POST') {

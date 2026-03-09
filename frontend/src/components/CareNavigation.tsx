@@ -6,8 +6,8 @@ import Header from './Header';
 
 interface NavigationRecommendation {
   navigationId: string;
-  department: string;
-  urgency: 'routine' | 'urgent' | 'emergency';
+  recommendedDepartment: string;
+  urgencyLevel: 'routine' | 'urgent' | 'emergency';
   reasoning: string;
   disclaimer: string;
   emergencyMessage?: string;
@@ -172,32 +172,21 @@ export default function CareNavigation() {
       <Header />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Demo Data Warning */}
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-yellow-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                <strong>DEMO DATA ONLY</strong> - Do not enter real medical information.
-              </p>
-            </div>
-          </div>
+        {/* Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+          >
+            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Dashboard
+          </button>
         </div>
 
         {/* Emergency Alert */}
-        {recommendation.urgency === 'emergency' && recommendation.emergencyMessage && (
+        {recommendation.urgencyLevel === 'emergency' && recommendation.emergencyMessage && (
           <div className="bg-red-600 text-white p-6 rounded-lg shadow-lg mb-6 animate-pulse">
             <div className="flex items-start">
               <div className="flex-shrink-0">
@@ -228,7 +217,7 @@ export default function CareNavigation() {
                 </svg>
               </div>
               <h3 className="text-2xl font-bold text-center text-blue-900 mb-2">
-                {recommendation.department}
+                {recommendation.recommendedDepartment}
               </h3>
               <p className="text-center text-blue-700 text-sm">
                 Recommended Department
@@ -238,17 +227,17 @@ export default function CareNavigation() {
             {/* Urgency Level */}
             <div className="mb-6">
               <h4 className="text-sm font-semibold text-gray-700 mb-3">Urgency Level</h4>
-              <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${getUrgencyColor(recommendation.urgency)}`}>
-                <div className="flex items-center">
-                  {getUrgencyIcon(recommendation.urgency)}
+              <div className={`p-4 rounded-lg border-2 ${getUrgencyColor(recommendation.urgencyLevel)}`}>
+                <div className="flex items-center mb-2">
+                  {getUrgencyIcon(recommendation.urgencyLevel)}
                   <span className="ml-3 text-lg font-bold capitalize">
-                    {recommendation.urgency}
+                    {recommendation.urgencyLevel}
                   </span>
                 </div>
-                <div className="text-sm font-medium">
-                  {recommendation.urgency === 'routine' && 'Can wait for scheduled appointment'}
-                  {recommendation.urgency === 'urgent' && 'Should be seen within 24-48 hours'}
-                  {recommendation.urgency === 'emergency' && 'Needs immediate medical attention'}
+                <div className="text-sm font-medium mt-2">
+                  {recommendation.urgencyLevel === 'routine' && 'Can wait for scheduled appointment'}
+                  {recommendation.urgencyLevel === 'urgent' && 'Should be seen within 24-48 hours'}
+                  {recommendation.urgencyLevel === 'emergency' && 'Needs immediate medical attention'}
                 </div>
               </div>
             </div>
@@ -257,7 +246,7 @@ export default function CareNavigation() {
             <div className="mb-6">
               <h4 className="text-sm font-semibold text-gray-700 mb-3">Reasoning</h4>
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <p className="text-gray-800 leading-relaxed">
+                <p className="text-gray-800 leading-relaxed whitespace-pre-wrap break-words">
                   {recommendation.reasoning}
                 </p>
               </div>
@@ -277,7 +266,7 @@ export default function CareNavigation() {
               <h3 className="text-sm font-semibold text-gray-900 mb-2">
                 Important Disclaimer
               </h3>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
                 {recommendation.disclaimer}
               </p>
             </div>
@@ -295,7 +284,7 @@ export default function CareNavigation() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span className="text-gray-700">
-                Visit the <strong>{recommendation.department}</strong> department at your nearest healthcare facility
+                Visit the <strong>{recommendation.recommendedDepartment}</strong> department at your nearest healthcare facility
               </span>
             </li>
             <li className="flex items-start">
@@ -314,7 +303,7 @@ export default function CareNavigation() {
                 Inform the healthcare provider about all your symptoms and their duration
               </span>
             </li>
-            {recommendation.urgency === 'emergency' && (
+            {recommendation.urgencyLevel === 'emergency' && (
               <li className="flex items-start">
                 <svg className="h-5 w-5 text-red-600 mt-0.5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

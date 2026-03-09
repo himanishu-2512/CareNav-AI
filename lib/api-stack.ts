@@ -91,6 +91,15 @@ export class ApiStack extends cdk.Stack {
     const scheduleResource = treatmentResource.addResource('schedule');
     const schedulePatientResource = scheduleResource.addResource('{patientId}');
     const markTakenResource = treatmentResource.addResource('mark-taken');
+    
+    // Treatment plan endpoints (new workflow)
+    const planResource = treatmentResource.addResource('plan');
+    const planCreateResource = planResource.addResource('create');
+    const planIdResource = planResource.addResource('{planId}');
+    const planMedicineResource = planIdResource.addResource('medicine');
+    const planMedicineIdResource = planMedicineResource.addResource('{medicineId}');
+    const plansResource = treatmentResource.addResource('plans');
+    const plansPatientResource = plansResource.addResource('{patientId}');
 
     // Adherence endpoints
     const adherenceResource = apiResource.addResource('adherence');
@@ -245,6 +254,14 @@ export class ApiStack extends cdk.Stack {
     schedulePatientResource.addMethod('GET', treatmentPlannerIntegration, { authorizer });
     markTakenResource.addMethod('POST', treatmentPlannerIntegration, { authorizer });
     adherencePatientResource.addMethod('GET', treatmentPlannerIntegration, { authorizer });
+    
+    // Treatment plan endpoints (new workflow)
+    planCreateResource.addMethod('POST', treatmentPlannerIntegration, { authorizer });
+    planIdResource.addMethod('PUT', treatmentPlannerIntegration, { authorizer });
+    planMedicineResource.addMethod('POST', treatmentPlannerIntegration, { authorizer });
+    planMedicineIdResource.addMethod('DELETE', treatmentPlannerIntegration, { authorizer });
+    planMedicineIdResource.addMethod('PUT', treatmentPlannerIntegration, { authorizer });
+    plansPatientResource.addMethod('GET', treatmentPlannerIntegration, { authorizer });
 
     // Doctor endpoints
     doctorPatientsResource.addMethod('GET', doctorIntegration, { authorizer });

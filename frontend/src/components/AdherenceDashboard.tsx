@@ -4,22 +4,62 @@ import axios from '../lib/axios';
 interface MissedDose {
   medicineId: string;
   medicineName: string;
-  doseTime: string;
-  missedDate: string;
+  dosage: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  status: string;
 }
 
 interface AdherenceTrend {
   date: string;
-  adherenceRate: number;
+  adherencePercentage: number;
+  scheduled: number;
+  taken: number;
+  missed: number;
+}
+
+interface MedicineAdherence {
+  medicineId: string;
+  medicineName: string;
+  dosage: string;
+  adherencePercentage: number;
+  scheduled: number;
+  taken: number;
+  missed: number;
+  isActive: boolean;
+  startDate: string;
+  stopDate: string;
+  warningLevel: 'good' | 'warning' | 'critical';
 }
 
 interface PatientAdherence {
-  patientId: string;
-  patientName: string;
-  overallAdherence: number;
-  activeMedicines: number;
+  patient: {
+    patientId: string;
+    name: string;
+    age: number;
+    gender: string;
+  };
+  adherence: {
+    overall: number;
+    isLowAdherence: boolean;
+    warningLevel: 'good' | 'warning' | 'critical';
+    totalScheduled: number;
+    totalTaken: number;
+    totalMissed: number;
+    lastCalculated: string;
+  };
+  medicines: MedicineAdherence[];
+  trends: {
+    daily: AdherenceTrend[];
+    weekly: AdherenceTrend[];
+  };
   missedDoses: MissedDose[];
-  trends: AdherenceTrend[];
+  summary: {
+    hasLowAdherence: boolean;
+    lowAdherenceMedicines: string[];
+    recentMissedCount: number;
+    recommendations: string[];
+  };
 }
 
 export const AdherenceDashboard: React.FC = () => {
@@ -86,20 +126,17 @@ export const AdherenceDashboard: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      {/* Demo Data Warning */}
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-yellow-700">
-              DEMO DATA ONLY - This is a demonstration system. Do not use for actual patient monitoring.
-            </p>
-          </div>
-        </div>
+      {/* Back Button */}
+      <div className="mb-6">
+        <button
+          onClick={() => window.history.back()}
+          className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+        >
+          <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
       </div>
 
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Adherence Dashboard</h1>
@@ -143,63 +180,122 @@ export const AdherenceDashboard: React.FC = () => {
       {adherenceData && (
         <div className="space-y-6">
           {/* Overall Adherence Card */}
-          <div className={`rounded-lg shadow-md p-6 border-2 ${getAdherenceBgColor(adherenceData.overallAdherence)}`}>
+          <div className={`rounded-lg shadow-md p-6 border-2 ${getAdherenceBgColor(adherenceData.adherence.overall)}`}>
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">{adherenceData.patientName}</h2>
-                <p className="text-sm text-gray-600">Patient ID: {adherenceData.patientId}</p>
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">{adherenceData.patient.name}</h2>
+                <p className="text-sm text-gray-600">Patient ID: {adherenceData.patient.patientId}</p>
                 <p className="text-sm text-gray-600 mt-1">
-                  Active Medicines: {adherenceData.activeMedicines}
+                  Active Medicines: {adherenceData.medicines.filter(m => m.isActive).length}
                 </p>
               </div>
               <div className="text-center">
-                {getAdherenceIcon(adherenceData.overallAdherence)}
-                <div className={`text-4xl font-bold mt-2 ${getAdherenceColor(adherenceData.overallAdherence)}`}>
-                  {adherenceData.overallAdherence}%
+                {getAdherenceIcon(adherenceData.adherence.overall)}
+                <div className={`text-4xl font-bold mt-2 ${getAdherenceColor(adherenceData.adherence.overall)}`}>
+                  {adherenceData.adherence.overall}%
                 </div>
                 <p className="text-sm text-gray-600 mt-1">Overall Adherence</p>
               </div>
             </div>
 
-            {adherenceData.overallAdherence < 80 && (
+            {adherenceData.adherence.isLowAdherence && (
               <div className="mt-4 pt-4 border-t border-gray-300">
                 <div className="flex items-start">
                   <svg className="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
-                  <p className="text-sm text-red-800 font-medium">
-                    Low adherence detected. Consider patient follow-up and intervention.
-                  </p>
+                  <div>
+                    <p className="text-sm text-red-800 font-medium mb-2">
+                      Low adherence detected. Consider patient follow-up and intervention.
+                    </p>
+                    {adherenceData.summary.recommendations.length > 0 && (
+                      <ul className="text-sm text-red-700 space-y-1">
+                        {adherenceData.summary.recommendations.map((rec, idx) => (
+                          <li key={idx}>• {rec}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Adherence Trends */}
-          {adherenceData.trends.length > 0 && (
+          {/* Medicine-wise Adherence */}
+          {adherenceData.medicines.length > 0 && (
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Adherence Trends</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Medicine-wise Adherence</h2>
+              
+              <div className="space-y-4">
+                {adherenceData.medicines.map((medicine) => (
+                  <div key={medicine.medicineId} className={`p-4 rounded-lg border-2 ${getAdherenceBgColor(medicine.adherencePercentage)}`}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">{medicine.medicineName}</h3>
+                        <p className="text-sm text-gray-600">{medicine.dosage}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(medicine.startDate).toLocaleDateString()} - {new Date(medicine.stopDate).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-2xl font-bold ${getAdherenceColor(medicine.adherencePercentage)}`}>
+                          {medicine.adherencePercentage}%
+                        </div>
+                        <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
+                          medicine.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {medicine.isActive ? 'Active' : 'Completed'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Scheduled:</span>
+                        <span className="ml-2 font-medium">{medicine.scheduled}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Taken:</span>
+                        <span className="ml-2 font-medium text-green-600">{medicine.taken}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Missed:</span>
+                        <span className="ml-2 font-medium text-red-600">{medicine.missed}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Adherence Trends */}
+          {adherenceData.trends.daily.length > 0 && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Adherence Trends (Last 30 Days)</h2>
               
               <div className="space-y-3">
-                {adherenceData.trends.map((trend, index) => (
+                {adherenceData.trends.daily.slice(-30).map((trend, index) => (
                   <div key={index} className="flex items-center">
                     <div className="w-24 text-sm text-gray-600">{trend.date}</div>
                     <div className="flex-1 mx-4">
                       <div className="w-full bg-gray-200 rounded-full h-4">
                         <div
                           className={`h-4 rounded-full transition-all ${
-                            trend.adherenceRate >= 80
+                            trend.adherencePercentage >= 80
                               ? 'bg-green-600'
-                              : trend.adherenceRate >= 60
+                              : trend.adherencePercentage >= 60
                               ? 'bg-yellow-600'
                               : 'bg-red-600'
                           }`}
-                          style={{ width: `${trend.adherenceRate}%` }}
+                          style={{ width: `${trend.adherencePercentage}%` }}
                         />
                       </div>
                     </div>
-                    <div className={`w-16 text-right font-medium ${getAdherenceColor(trend.adherenceRate)}`}>
-                      {trend.adherenceRate}%
+                    <div className={`w-16 text-right font-medium ${getAdherenceColor(trend.adherencePercentage)}`}>
+                      {trend.adherencePercentage}%
+                    </div>
+                    <div className="ml-4 text-xs text-gray-500">
+                      {trend.taken}/{trend.scheduled}
                     </div>
                   </div>
                 ))}
@@ -210,7 +306,9 @@ export const AdherenceDashboard: React.FC = () => {
           {/* Missed Doses */}
           {adherenceData.missedDoses.length > 0 && (
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Missed Doses</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Missed Doses ({adherenceData.missedDoses.length})
+              </h2>
               
               <div className="space-y-3">
                 {adherenceData.missedDoses.map((dose, index) => (
@@ -219,10 +317,10 @@ export const AdherenceDashboard: React.FC = () => {
                       <div>
                         <h3 className="font-medium text-gray-900">{dose.medicineName}</h3>
                         <p className="text-sm text-gray-600 mt-1">
-                          Scheduled: {dose.doseTime}
+                          Dosage: {dose.dosage}
                         </p>
                         <p className="text-sm text-gray-600">
-                          Date: {dose.missedDate}
+                          Scheduled: {dose.scheduledTime} on {new Date(dose.scheduledDate).toLocaleDateString()}
                         </p>
                       </div>
                       <span className="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded-full">

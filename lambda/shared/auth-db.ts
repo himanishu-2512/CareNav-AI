@@ -1,5 +1,5 @@
 // Authentication-related DynamoDB operations
-import { PutCommand, GetCommand, DeleteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, GetCommand, DeleteCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAME } from './dynamodb-client';
 import { User, Session, DynamoDBKeys } from './types';
 
@@ -107,4 +107,48 @@ export async function isSessionValid(token: string): Promise<boolean> {
   const expiresAt = new Date(session.expiresAt);
   
   return now < expiresAt;
+}
+
+/**
+ * Update user information
+ */
+export async function updateUser(
+  userId: string,
+  updates: Partial<Omit<User, 'userId' | 'passwordHash' | 'createdAt'>>
+): Promise<User> {
+  const keys = DynamoDBKeys.user(userId);
+
+  // Build update expression dynamically
+  const updateExpressions: string[] = [];
+  const expressionAttributeNames: Record<string, string> = {};
+  const expressionAttributeValues: Record<string, any> = {};
+
+  // Add fields to update
+  Object.entries(updates).forEach(([key, value]) => {
+    if (value !== undefined && key !== 'userId' && key !== 'passwordHash' && key !== 'createdAt') {
+      updateExpressions.push(`#${key} = :${key}`);
+      expressionAttributeNames[`#${key}`] = key;
+      expressionAttributeValues[`:${key}`] = value;
+    }
+  });
+
+  if (updateExpressions.length === 0) {
+    throw new Error('No fields to update');
+  }
+
+  const result = await dynamoDbClient.send(new UpdateCommand({
+    TableName: TABLE_NAME,
+    Key: keys,
+    UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+    ExpressionAttributeNames: expressionAttributeNames,
+    ExpressionAttributeValues: expressionAttributeValues,
+    ReturnValues: 'ALL_NEW'
+  }));
+
+  if (!result.Attributes) {
+    throw new Error('Failed to update user');
+  }
+
+  const { PK, SK, ...user } = result.Attributes;
+  return user as User;
 }

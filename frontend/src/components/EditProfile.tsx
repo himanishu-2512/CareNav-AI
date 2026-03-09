@@ -10,16 +10,27 @@ export default function EditProfile() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
     dateOfBirth: '',
     gender: '',
     bloodGroup: '',
-    address: '',
-    emergencyContact: '',
-    medicalHistory: ''
+    parentName: '',
+    contact: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Calculate age from date of birth
+  const calculateAge = (dob: string): number => {
+    if (!dob) return 0;
+    const today = new Date();
+    const birthDate = new Date(dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   useEffect(() => {
     loadProfile();
@@ -28,20 +39,18 @@ export default function EditProfile() {
   const loadProfile = async () => {
     setIsLoading(true);
     try {
-      const response = await axiosInstance.get(`/patients/${user?.userId}`);
-      const patient = response.data;
-      
-      setFormData({
-        name: patient.name || '',
-        email: patient.email || '',
-        phone: patient.phone || '',
-        dateOfBirth: patient.dateOfBirth || '',
-        gender: patient.gender || '',
-        bloodGroup: patient.bloodGroup || '',
-        address: patient.address || '',
-        emergencyContact: patient.emergencyContact || '',
-        medicalHistory: patient.medicalHistory || ''
-      });
+      // Use user context data directly since it's already loaded
+      if (user) {
+        setFormData({
+          name: user.name || '',
+          email: user.email || '',
+          dateOfBirth: user.dateOfBirth || '',
+          gender: user.gender || '',
+          bloodGroup: user.bloodGroup || '',
+          parentName: user.parentName || '',
+          contact: user.contact || ''
+        });
+      }
     } catch (error) {
       console.error('Failed to load profile:', error);
     } finally {
@@ -54,7 +63,18 @@ export default function EditProfile() {
     setIsSaving(true);
 
     try {
-      await axiosInstance.put(`/patients/${user?.userId}`, formData);
+      const age = calculateAge(formData.dateOfBirth);
+      await axiosInstance.put(`/auth/user/${user?.userId}`, {
+        name: formData.name,
+        email: formData.email,
+        dateOfBirth: formData.dateOfBirth,
+        age: age,
+        gender: formData.gender,
+        bloodGroup: formData.bloodGroup,
+        parentName: formData.parentName,
+        contact: formData.contact
+      });
+      
       alert('Profile updated successfully!');
       navigate('/dashboard');
     } catch (error) {
@@ -70,7 +90,7 @@ export default function EditProfile() {
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="flex justify-center items-center h-96">
-          <svg className="animate-spin h-12 w-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg className="animate-spin h-12 w-12 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
@@ -87,7 +107,7 @@ export default function EditProfile() {
         <div className="mb-6">
           <button
             onClick={() => navigate('/dashboard')}
-            className="flex items-center text-blue-600 hover:text-blue-700"
+            className="flex items-center text-teal-600 hover:text-teal-700"
           >
             <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -103,62 +123,58 @@ export default function EditProfile() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
+                  Full Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
+                  Email <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date of Birth
+                  Date of Birth <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
+                  max={new Date().toISOString().split('T')[0]}
                   value={formData.dateOfBirth}
                   onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  required
                 />
+                {formData.dateOfBirth && (
+                  <p className="mt-1 text-sm text-gray-500">
+                    Age: {calculateAge(formData.dateOfBirth)} years
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Gender
+                  Gender <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.gender}
                   onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  required
                 >
                   <option value="">Select Gender</option>
                   <option value="male">Male</option>
@@ -169,12 +185,13 @@ export default function EditProfile() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Blood Group
+                  Blood Group <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.bloodGroup}
                   onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  required
                 >
                   <option value="">Select Blood Group</option>
                   <option value="A+">A+</option>
@@ -187,44 +204,34 @@ export default function EditProfile() {
                   <option value="O-">O-</option>
                 </select>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address
-              </label>
-              <textarea
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Parent/Guardian Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.parentName}
+                  onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  placeholder="Parent or guardian full name"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Emergency Contact
-              </label>
-              <input
-                type="tel"
-                value={formData.emergencyContact}
-                onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Emergency contact number"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Medical History
-              </label>
-              <textarea
-                value={formData.medicalHistory}
-                onChange={(e) => setFormData({ ...formData, medicalHistory: e.target.value })}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Any chronic conditions, allergies, previous surgeries, etc."
-              />
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Contact Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={formData.contact}
+                  onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  placeholder="+91 98765 43210"
+                  required
+                />
+              </div>
             </div>
 
             <div className="flex justify-end space-x-4">
@@ -238,7 +245,7 @@ export default function EditProfile() {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+                className="px-6 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 disabled:bg-gray-400"
               >
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </button>

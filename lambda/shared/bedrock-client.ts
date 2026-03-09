@@ -9,8 +9,7 @@ export const bedrockClient = new BedrockRuntimeClient({
   region: BEDROCK_REGION
 });
 
-// Use Amazon Nova 2 Lite INFERENCE PROFILE (works globally across all regions)
-// Inference Profile ID: global.amazon.nova-2-lite-v1:0
+// Use Amazon Nova 2 Lite for medical question generation (available in us-east-1)
 export const BEDROCK_MODEL_ID = 'global.amazon.nova-2-lite-v1:0';
 
 /**
@@ -43,15 +42,15 @@ export async function callBedrock(
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Use inference profile - works from any region (Lambda is in ap-south-1)
+      // Use Claude 3 Sonnet in us-east-1 for medical questions
       const client = new BedrockRuntimeClient({
-        region: 'ap-south-1' // Use Lambda's region with global inference profile
+        region: 'us-east-1' // Claude models available in us-east-1
       });
       
-      // Log the model ID (inference profile) and region for debugging
-      console.log(`Bedrock API call attempt ${attempt}: modelId=${BEDROCK_MODEL_ID} (inference profile), region=ap-south-1`);
+      // Log the model ID and region for debugging
+      console.log(`Bedrock API call attempt ${attempt}: modelId=${BEDROCK_MODEL_ID}, region=us-east-1`);
       
-      // Prepare request body for Nova Lite
+      // Prepare request body for Amazon Nova 2 Lite
       const requestBody = {
         messages: [
           {
@@ -89,6 +88,7 @@ export async function callBedrock(
       // Parse response body
       const responseBody = JSON.parse(new TextDecoder().decode(response.body));
       
+      // Amazon Nova response format
       if (responseBody.output?.message?.content?.[0]?.text) {
         console.log('Bedrock API call succeeded!');
         return responseBody.output.message.content[0].text;

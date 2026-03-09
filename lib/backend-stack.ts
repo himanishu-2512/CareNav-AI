@@ -61,6 +61,23 @@ export class BackendStack extends cdk.Stack {
       resources: [`arn:aws:lambda:${this.region}:${this.account}:function:*`]
     }));
 
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['bedrock:InvokeModel'],
+      resources: ['*']
+    }));
+
+    // Add Comprehend Medical permissions for disease prediction and summarization
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'comprehendmedical:DetectEntitiesV2',
+        'comprehendmedical:InferICD10CM',
+        'comprehendmedical:DetectPHI'
+      ],
+      resources: ['*']
+    }));
+
     appSecrets.grantRead(lambdaRole);
 
     const commonEnv = {
@@ -130,12 +147,17 @@ export class BackendStack extends cdk.Stack {
       handler: 'handler',
       runtime: lambda.Runtime.NODEJS_20_X,
       role: lambdaRole,
-      environment: commonEnv,
+      environment: {
+        ...commonEnv,
+        BUILD_VERSION: '2026-03-09-10-00', // v34 - 10 questions (2 rounds) + department predictor
+        AWS_BEARER_TOKEN_BEDROCK: process.env.AWS_BEARER_TOKEN_BEDROCK || '',
+        OPENAI_BASE_URL: 'https://bedrock-mantle.ap-south-1.api.aws/v1'
+      },
       timeout: cdk.Duration.seconds(30),
       memorySize: 512,
       bundling: {
         externalModules: ['@aws-sdk/*'],
-        minify: true,
+        minify: false,
         sourceMap: true,
         forceDockerBundling: false
       }
@@ -323,6 +345,8 @@ export class BackendStack extends cdk.Stack {
     const loginResource = authResource.addResource('login');
     const registerAuthResource = authResource.addResource('register');
     const logoutResource = authResource.addResource('logout');
+    const userResource = authResource.addResource('user');
+    const userIdResource = userResource.addResource('{userId}');
 
     // Patient endpoints
     const patientsResource = apiResource.addResource('patients');
@@ -330,10 +354,12 @@ export class BackendStack extends cdk.Stack {
     const summaryResource = patientsResource.addResource('summary');
     const summaryPatientResource = summaryResource.addResource('{patientId}');
     const patientIdResource = patientsResource.addResource('{patientId}');
+    const patientRedFlagsResource = patientIdResource.addResource('red-flags');
 
     // Symptom endpoints
     const symptomsResource = apiResource.addResource('symptoms');
     const symptomInputResource = symptomsResource.addResource('input');
+    const symptomPredictDeptResource = symptomsResource.addResource('predict-department');
     const symptomHistoryResource = symptomsResource.addResource('history');
     const symptomHistoryPatientResource = symptomHistoryResource.addResource('{patientId}');
     const symptomIdResource = symptomsResource.addResource('{symptomId}');
@@ -354,9 +380,20 @@ export class BackendStack extends cdk.Stack {
     // Treatment endpoints
     const treatmentResource = apiResource.addResource('treatment');
     const createTreatmentResource = treatmentResource.addResource('create');
+    const treatmentPlansResource = treatmentResource.addResource('plans');
+    const treatmentPlansPatientResource = treatmentPlansResource.addResource('{patientId}');
     const scheduleResource = treatmentResource.addResource('schedule');
     const schedulePatientResource = scheduleResource.addResource('{patientId}');
     const markTakenResource = treatmentResource.addResource('mark-taken');
+    
+    // Treatment plan endpoints (new workflow)
+    const planResource = treatmentResource.addResource('plan');
+    const planCreateResource = planResource.addResource('create');
+    const planIdResource = planResource.addResource('{planId}');
+    const planMedicineResource = planIdResource.addResource('medicine');
+    const planMedicineIdResource = planMedicineResource.addResource('{medicineId}');
+    const completeResource = treatmentResource.addResource('complete');
+    const completePlanIdResource = completeResource.addResource('{treatmentPlanId}');
 
     // Adherence endpoints
     const adherenceResource = apiResource.addResource('adherence');
@@ -368,6 +405,8 @@ export class BackendStack extends cdk.Stack {
     const doctorSearchResource = doctorPatientsResource.addResource('search');
     const doctorAddResource = doctorPatientsResource.addResource('add');
     const doctorPatientIdResource = doctorPatientsResource.addResource('{patientId}');
+    const doctorPatientStatusResource = doctorPatientIdResource.addResource('status');
+    const doctorPatientRelationshipResource = doctorPatientIdResource.addResource('relationship');
 
     // QR endpoints
     const qrResource = apiResource.addResource('qr');
@@ -420,13 +459,16 @@ export class BackendStack extends cdk.Stack {
     loginResource.addMethod('POST', authIntegration);
     registerAuthResource.addMethod('POST', authIntegration);
     logoutResource.addMethod('POST', authIntegration);
+    userIdResource.addMethod('PUT', authIntegration, { authorizer });
     
     // Protected endpoints (require authorization)
     registerResource.addMethod('POST', patientIntegration, { authorizer });
     summaryPatientResource.addMethod('GET', patientIntegration, { authorizer });
     patientIdResource.addMethod('GET', patientIntegration, { authorizer });
     patientIdResource.addMethod('PUT', patientIntegration, { authorizer });
+    patientRedFlagsResource.addMethod('GET', patientIntegration, { authorizer });
     symptomInputResource.addMethod('POST', symptomIntegration, { authorizer });
+    symptomPredictDeptResource.addMethod('POST', symptomIntegration, { authorizer });
     symptomHistoryPatientResource.addMethod('GET', symptomIntegration, { authorizer });
     symptomIdResource.addMethod('GET', symptomIntegration, { authorizer });
     symptomIdResource.addMethod('DELETE', symptomIntegration, { authorizer });
@@ -437,15 +479,27 @@ export class BackendStack extends cdk.Stack {
     uploadResource.addMethod('POST', reportProcessorIntegration, { authorizer });
     timelinePatientResource.addMethod('GET', reportProcessorIntegration, { authorizer });
     createTreatmentResource.addMethod('POST', treatmentPlannerIntegration, { authorizer });
+    treatmentPlansPatientResource.addMethod('GET', treatmentPlannerIntegration, { authorizer });
     schedulePatientResource.addMethod('GET', treatmentPlannerIntegration, { authorizer });
     markTakenResource.addMethod('POST', treatmentPlannerIntegration, { authorizer });
     adherencePatientResource.addMethod('GET', treatmentPlannerIntegration, { authorizer });
+    
+    // Treatment plan endpoints (new workflow)
+    planCreateResource.addMethod('POST', treatmentPlannerIntegration, { authorizer });
+    planIdResource.addMethod('PUT', treatmentPlannerIntegration, { authorizer });
+    planIdResource.addMethod('GET', treatmentPlannerIntegration, { authorizer });
+    planMedicineResource.addMethod('POST', treatmentPlannerIntegration, { authorizer });
+    planMedicineIdResource.addMethod('DELETE', treatmentPlannerIntegration, { authorizer });
+    planMedicineIdResource.addMethod('PUT', treatmentPlannerIntegration, { authorizer });
+    completePlanIdResource.addMethod('POST', treatmentPlannerIntegration, { authorizer });
 
     // Doctor endpoints
     doctorPatientsResource.addMethod('GET', doctorIntegration, { authorizer });
     doctorSearchResource.addMethod('GET', doctorIntegration, { authorizer });
     doctorAddResource.addMethod('POST', doctorIntegration, { authorizer });
     doctorPatientIdResource.addMethod('DELETE', doctorIntegration, { authorizer });
+    doctorPatientStatusResource.addMethod('PUT', doctorIntegration, { authorizer });
+    doctorPatientRelationshipResource.addMethod('GET', doctorIntegration, { authorizer });
 
     // QR endpoints
     qrGenerateResource.addMethod('POST', qrAuthIntegration, { authorizer });

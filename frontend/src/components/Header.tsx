@@ -22,18 +22,18 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-gradient-to-r from-blue-50 to-green-50 shadow-sm border-b border-blue-100">
+    <header className="bg-teal-50 shadow-sm border-b border-teal-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
             <h1 
               onClick={handleLogoClick}
-              className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent cursor-pointer hover:from-blue-700 hover:to-green-700 transition-all"
+              className="text-2xl font-bold text-teal-700 cursor-pointer hover:text-teal-800 transition-all"
             >
               CareNav AI
             </h1>
             {user && (
-              <span className="ml-4 px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+              <span className="ml-4 px-3 py-1 text-xs font-medium rounded-full bg-teal-100 text-teal-700 border border-teal-200">
                 {user.role === 'patient' ? 'Patient' : 'Doctor'}
               </span>
             )}
@@ -67,7 +67,7 @@ export default function Header() {
       </div>
 
       {/* Demo Data Warning Banner */}
-      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-yellow-200">
+      <div className="bg-yellow-50 border-b border-yellow-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
           <div className="flex items-center">
             <svg

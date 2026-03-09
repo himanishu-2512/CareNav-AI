@@ -63,8 +63,10 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onScanError
   const handleManualCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!/^[a-zA-Z0-9]{8}$/.test(manualCode)) {
-      onScanError('Code must be 8 alphanumeric characters');
+    // Validate UUID format (36 characters with hyphens)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(manualCode)) {
+      onScanError('Please enter a valid patient ID (UUID format)');
       return;
     }
 
@@ -108,10 +110,10 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onScanError
           <input
             type="text"
             value={manualCode}
-            onChange={(e) => setManualCode(e.target.value.toUpperCase())}
-            placeholder="Enter 8-character code"
-            maxLength={8}
-            className="px-4 py-2 border rounded mr-2"
+            onChange={(e) => setManualCode(e.target.value.toLowerCase())}
+            placeholder="Enter patient ID (e.g., 12345678-1234-1234-1234-123456789abc)"
+            maxLength={36}
+            className="px-4 py-2 border rounded mr-2 w-96"
           />
           <button
             type="submit"

@@ -129,6 +129,20 @@ export default function SymptomChat() {
       <Header />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pb-24">
+        {/* Back Button */}
+        <div className="mb-4">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+          >
+            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Dashboard
+          </button>
+        </div>
+
+
         {/* Chat Messages */}
         <div className="space-y-4">
           {messages.map((message) => (

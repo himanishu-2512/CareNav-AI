@@ -8,8 +8,10 @@ interface RegistrationFormData {
   email: string;
   password: string;
   confirmPassword: string;
-  age: string;
+  dateOfBirth: string;
   gender: string;
+  bloodGroup: string;
+  parentName: string;
   contact: string;
 }
 
@@ -20,13 +22,28 @@ export default function PatientRegistration() {
     email: '',
     password: '',
     confirmPassword: '',
-    age: '',
+    dateOfBirth: '',
     gender: '',
+    bloodGroup: '',
+    parentName: '',
     contact: '',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showScanMessage, setShowScanMessage] = useState(false);
+  // const [, setShowScanMessage] = useState(false);
+
+  // Calculate age from date of birth
+  const calculateAge = (dob: string): number => {
+    if (!dob) return 0;
+    const today = new Date();
+    const birthDate = new Date(dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -36,10 +53,10 @@ export default function PatientRegistration() {
     }));
   };
 
-  const handleScanIdClick = () => {
-    setShowScanMessage(true);
-    setTimeout(() => setShowScanMessage(false), 3000);
-  };
+  // const handleScanIdClick = () => {
+  //   setShowScanMessage(true);
+  //   setTimeout(() => setShowScanMessage(false), 3000);
+  // };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -48,7 +65,8 @@ export default function PatientRegistration() {
 
     // Validate required fields
     if (!formData.name.trim() || !formData.email.trim() || !formData.password || 
-        !formData.confirmPassword || !formData.age || !formData.gender || !formData.contact.trim()) {
+        !formData.confirmPassword || !formData.dateOfBirth || !formData.gender || 
+        !formData.bloodGroup || !formData.parentName.trim() || !formData.contact.trim()) {
       setError('All fields are required');
       setIsLoading(false);
       return;
@@ -68,10 +86,10 @@ export default function PatientRegistration() {
       return;
     }
 
-    // Validate age is a positive number
-    const ageNum = parseInt(formData.age);
-    if (isNaN(ageNum) || ageNum <= 0 || ageNum > 150) {
-      setError('Please enter a valid age');
+    // Calculate age from date of birth
+    const age = calculateAge(formData.dateOfBirth);
+    if (age <= 0 || age > 150) {
+      setError('Please enter a valid date of birth');
       setIsLoading(false);
       return;
     }
@@ -82,8 +100,11 @@ export default function PatientRegistration() {
         email: formData.email.trim(),
         password: formData.password,
         role: 'patient',
-        age: ageNum,
+        dateOfBirth: formData.dateOfBirth,
+        age: age,
         gender: formData.gender,
+        bloodGroup: formData.bloodGroup,
+        parentName: formData.parentName.trim(),
         contact: formData.contact.trim(),
       });
 
@@ -113,34 +134,6 @@ export default function PatientRegistration() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        {/* Privacy Notice - Demo Data Warning */}
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-yellow-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-semibold text-yellow-800">
-                Privacy Notice - Demo Data Only
-              </h3>
-              <p className="mt-1 text-sm text-yellow-700">
-                <strong>DO NOT enter real medical information.</strong> This system is for demonstration purposes only. 
-                Use fictional data for testing. All data will be treated as demo data.
-              </p>
-            </div>
-          </div>
-        </div>
-
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
@@ -257,25 +250,28 @@ export default function PatientRegistration() {
             {/* Age Field */}
             <div>
               <label
-                htmlFor="age"
+                htmlFor="dateOfBirth"
                 className="block text-sm font-medium text-gray-700"
               >
-                Age <span className="text-red-500">*</span>
+                Date of Birth <span className="text-red-500">*</span>
               </label>
               <div className="mt-1">
                 <input
-                  id="age"
-                  name="age"
-                  type="number"
+                  id="dateOfBirth"
+                  name="dateOfBirth"
+                  type="date"
                   required
-                  min="1"
-                  max="150"
-                  value={formData.age}
+                  max={new Date().toISOString().split('T')[0]}
+                  value={formData.dateOfBirth}
                   onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="25"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
                 />
               </div>
+              {formData.dateOfBirth && (
+                <p className="mt-1 text-sm text-gray-500">
+                  Age: {calculateAge(formData.dateOfBirth)} years
+                </p>
+              )}
             </div>
 
             {/* Gender Field */}
@@ -293,13 +289,65 @@ export default function PatientRegistration() {
                   required
                   value={formData.gender}
                   onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
                 >
                   <option value="">Select gender</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
                   <option value="other">Other</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Blood Group Field */}
+            <div>
+              <label
+                htmlFor="bloodGroup"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Blood Group <span className="text-red-500">*</span>
+              </label>
+              <div className="mt-1">
+                <select
+                  id="bloodGroup"
+                  name="bloodGroup"
+                  required
+                  value={formData.bloodGroup}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
+                >
+                  <option value="">Select blood group</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Parent Name Field */}
+            <div>
+              <label
+                htmlFor="parentName"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Parent/Guardian Name <span className="text-red-500">*</span>
+              </label>
+              <div className="mt-1">
+                <input
+                  id="parentName"
+                  name="parentName"
+                  type="text"
+                  required
+                  value={formData.parentName}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
+                  placeholder="Parent or guardian full name"
+                />
               </div>
             </div>
 
@@ -319,42 +367,10 @@ export default function PatientRegistration() {
                   required
                   value={formData.contact}
                   onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
                   placeholder="+91 98765 43210"
                 />
               </div>
-            </div>
-
-            {/* Scan ID Button (Demo Only) */}
-            <div className="pt-4 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={handleScanIdClick}
-                className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <svg
-                  className="h-5 w-5 mr-2 text-gray-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
-                  />
-                </svg>
-                Scan ID (Demo Only)
-              </button>
-              
-              {showScanMessage && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-sm text-blue-700 text-center">
-                    This is a placeholder feature for demonstration purposes.
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Submit Button */}
@@ -362,7 +378,7 @@ export default function PatientRegistration() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Registering...' : 'Register'}
               </button>
@@ -386,7 +402,7 @@ export default function PatientRegistration() {
               <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                className="text-sm font-medium text-teal-600 hover:text-teal-500"
               >
                 Back to Login
               </button>

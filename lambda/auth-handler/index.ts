@@ -41,6 +41,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return await handleRegister(event);
     } else if (path === '/api/auth/logout' && method === 'POST') {
       return await handleLogout(event);
+    } else if (path.match(/\/api\/auth\/user\/[^/]+$/) && method === 'PUT') {
+      return await handleUpdateUser(event);
     } else {
       return errorResponse('Not found', 404);
     }
@@ -70,7 +72,7 @@ async function handleRegister(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     );
   }
 
-  const { name, email, password, role, phone, specialization, licenseNumber, age, gender, contact } = body;
+  const { name, email, password, role, phone, specialization, licenseNumber, age, gender, contact, dateOfBirth, bloodGroup, parentName } = body;
 
   // Validate role
   if (role !== 'patient' && role !== 'doctor') {
@@ -111,6 +113,9 @@ async function handleRegister(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     user.age = age;
     user.gender = gender;
     user.contact = contact || phone;
+    user.dateOfBirth = dateOfBirth;
+    user.bloodGroup = bloodGroup;
+    user.parentName = parentName;
   }
 
   await createUser(user);
@@ -191,11 +196,32 @@ async function handleLogin(event: APIGatewayProxyEvent): Promise<APIGatewayProxy
 
   console.log(`Login successful for user ${user.userId} (${user.role})`);
 
+  // Prepare user data to return (exclude passwordHash)
+  const userData: any = {
+    userId: user.userId,
+    email: user.email,
+    role: user.role,
+    name: user.name
+  };
+
+  // Add role-specific fields
+  if (user.role === 'patient') {
+    userData.age = user.age;
+    userData.dateOfBirth = user.dateOfBirth;
+    userData.gender = user.gender;
+    userData.contact = user.contact;
+    userData.bloodGroup = user.bloodGroup;
+    userData.parentName = user.parentName;
+  } else if (user.role === 'doctor') {
+    userData.phone = user.phone;
+    userData.specialization = user.specialization;
+    userData.licenseNumber = user.licenseNumber;
+  }
+
   // Return token and user info
   return successResponse({
     token,
-    userId: user.userId,
-    role: user.role,
+    ...userData,
     expiresAt
   });
 }
@@ -235,5 +261,44 @@ async function handleLogout(event: APIGatewayProxyEvent): Promise<APIGatewayProx
       success: true,
       message: 'Logged out successfully'
     });
+  }
+}
+
+/**
+ * Handle user profile update
+ */
+async function handleUpdateUser(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  // Extract userId from path
+  const pathParts = event.path.split('/');
+  const userId = pathParts[pathParts.length - 1];
+
+  if (!userId) {
+    return errorResponse('User ID is required', 400);
+  }
+
+  if (!event.body) {
+    return errorResponse('Request body is required', 400);
+  }
+
+  const updates = JSON.parse(event.body);
+
+  // Import updateUser function
+  const { updateUser } = await import('../shared/auth-db');
+
+  try {
+    const updatedUser = await updateUser(userId, updates);
+
+    // Remove passwordHash from response
+    const { passwordHash, ...userResponse } = updatedUser;
+
+    console.log(`User ${userId} updated successfully`);
+
+    return successResponse({
+      message: 'User updated successfully',
+      user: userResponse
+    });
+  } catch (error: any) {
+    console.error('Error updating user:', error);
+    return errorResponse(error.message || 'Failed to update user', 500);
   }
 }

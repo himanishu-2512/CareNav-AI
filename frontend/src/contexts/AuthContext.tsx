@@ -5,6 +5,13 @@ interface User {
   userId: string;
   email: string;
   role: 'patient' | 'doctor';
+  name?: string;
+  age?: number;
+  dateOfBirth?: string;
+  gender?: string;
+  bloodGroup?: string;
+  parentName?: string;
+  contact?: string;
 }
 
 interface AuthContextType {
@@ -59,8 +66,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
       });
 
-      const { token: newToken, userId, role } = response.data;
-      const newUser: User = { userId, email, role };
+      const { token: newToken, userId, role, name, age, dateOfBirth, gender, contact, bloodGroup, parentName } = response.data;
+      const newUser: User = { 
+        userId, 
+        email, 
+        role,
+        name,
+        age,
+        dateOfBirth,
+        gender,
+        contact,
+        bloodGroup,
+        parentName
+      };
 
       // Store in state
       setToken(newToken);

@@ -44,9 +44,44 @@ export async function handler(event: APIGatewayProxyEvent, context: any): Promis
   try {
     const path = event.path;
 
-    // POST /api/treatment/create - Create treatment plan
+    // POST /api/treatment/plan/create - Create empty treatment plan
+    if (path === '/api/treatment/plan/create' && event.httpMethod === 'POST') {
+      return await handleCreateEmptyPlan(event);
+    }
+
+    // PUT /api/treatment/plan/:planId - Update treatment plan metadata
+    if (path.match(/^\/api\/treatment\/plan\/[^/]+$/) && event.httpMethod === 'PUT') {
+      return await handleUpdatePlan(event);
+    }
+
+    // GET /api/treatment/plan/:planId - Get single treatment plan
+    if (path.match(/^\/api\/treatment\/plan\/[^/]+$/) && event.httpMethod === 'GET') {
+      return await handleGetSinglePlan(event);
+    }
+
+    // POST /api/treatment/plan/:planId/medicine - Add medicine to plan
+    if (path.match(/^\/api\/treatment\/plan\/[^/]+\/medicine$/) && event.httpMethod === 'POST') {
+      return await handleAddMedicine(event, context);
+    }
+
+    // DELETE /api/treatment/plan/:planId/medicine/:medicineId - Remove medicine
+    if (path.match(/^\/api\/treatment\/plan\/[^/]+\/medicine\/[^/]+$/) && event.httpMethod === 'DELETE') {
+      return await handleRemoveMedicine(event);
+    }
+
+    // PUT /api/treatment/plan/:planId/medicine/:medicineId - Update medicine
+    if (path.match(/^\/api\/treatment\/plan\/[^/]+\/medicine\/[^/]+$/) && event.httpMethod === 'PUT') {
+      return await handleUpdateMedicine(event);
+    }
+
+    // POST /api/treatment/create - Create treatment plan (legacy endpoint)
     if (path === '/api/treatment/create' && event.httpMethod === 'POST') {
       return await handleCreateTreatment(event, context);
+    }
+
+    // GET /api/treatment/plans/:patientId - Get all treatment plans for patient
+    if (path.startsWith('/api/treatment/plans/') && event.httpMethod === 'GET') {
+      return await handleGetTreatmentPlans(event);
     }
 
     // POST /api/treatment/mark-taken - Mark dose as taken
@@ -87,7 +122,292 @@ export async function handler(event: APIGatewayProxyEvent, context: any): Promis
 }
 
 /**
- * Handle treatment plan creation
+ * Handle creating an empty treatment plan
+ */
+async function handleCreateEmptyPlan(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  if (!event.body) {
+    return errorResponse('Request body is required', 400);
+  }
+
+  const { patientId, doctorId, planName, disease, duration } = JSON.parse(event.body);
+
+  if (!patientId || !doctorId || !planName || !disease || !duration) {
+    return errorResponse('patientId, doctorId, planName, disease, and duration are required', 400);
+  }
+
+  // Create empty treatment plan
+  const treatmentPlan = await createTreatmentPlan({
+    patientId,
+    doctorId,
+    planName,
+    disease,
+    duration,
+    prescriptions: []
+  });
+
+  return successResponse({
+    treatmentPlanId: treatmentPlan.treatmentPlanId,
+    message: 'Treatment plan created successfully'
+  });
+}
+
+/**
+ * Handle updating treatment plan metadata
+ */
+async function handleUpdatePlan(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  if (!event.body) {
+    return errorResponse('Request body is required', 400);
+  }
+
+  const pathParts = event.path.split('/');
+  const treatmentPlanId = pathParts[pathParts.length - 1];
+  const { patientId, doctorId, planName, disease, duration } = JSON.parse(event.body);
+
+  if (!patientId || !doctorId) {
+    return errorResponse('patientId and doctorId are required', 400);
+  }
+
+  const { getTreatmentPlan, updateTreatmentPlanMetadata } = await import('../shared/treatment-db');
+
+  // Verify plan exists and doctor owns it
+  const existingPlan = await getTreatmentPlan(patientId, treatmentPlanId);
+  if (!existingPlan) {
+    return errorResponse('Treatment plan not found', 404);
+  }
+
+  if (existingPlan.doctorId !== doctorId) {
+    return errorResponse('Access denied. You can only edit your own treatment plans.', 403);
+  }
+
+  // Update plan metadata
+  const updatedPlan = await updateTreatmentPlanMetadata(patientId, treatmentPlanId, {
+    planName,
+    disease,
+    duration
+  });
+
+  return successResponse({
+    message: 'Treatment plan updated successfully',
+    treatmentPlan: updatedPlan
+  });
+}
+
+/**
+ * Handle getting a single treatment plan
+ */
+async function handleGetSinglePlan(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  const pathParts = event.path.split('/');
+  const treatmentPlanId = pathParts[pathParts.length - 1];
+  const patientId = event.queryStringParameters?.patientId;
+
+  if (!patientId) {
+    return errorResponse('patientId query parameter is required', 400);
+  }
+
+  const { getTreatmentPlan } = await import('../shared/treatment-db');
+
+  try {
+    const plan = await getTreatmentPlan(patientId, treatmentPlanId);
+    
+    if (!plan) {
+      return errorResponse('Treatment plan not found', 404);
+    }
+
+    return successResponse(plan);
+  } catch (err: any) {
+    console.error('Failed to get treatment plan:', err);
+    return errorResponse(err.message || 'Failed to get treatment plan', 500);
+  }
+}
+
+/**
+ * Handle adding medicine to treatment plan
+ */
+async function handleAddMedicine(event: APIGatewayProxyEvent, context: any): Promise<APIGatewayProxyResult> {
+  if (!event.body) {
+    return errorResponse('Request body is required', 400);
+  }
+
+  const pathParts = event.path.split('/');
+  console.log('Path parts:', pathParts);
+  console.log('Full path:', event.path);
+  
+  const treatmentPlanId = pathParts[4]; // /api/treatment/plan/{planId}/medicine
+  console.log('Extracted treatmentPlanId:', treatmentPlanId);
+  
+  if (!treatmentPlanId) {
+    return errorResponse('Treatment plan ID not found in URL path', 400);
+  }
+
+  const body = JSON.parse(event.body);
+  console.log('Request body:', JSON.stringify(body, null, 2));
+  
+  const { patientId, doctorId, medicine } = body;
+
+  if (!patientId) {
+    return errorResponse('patientId is required in request body', 400);
+  }
+  
+  if (!doctorId) {
+    return errorResponse('doctorId is required in request body', 400);
+  }
+  
+  if (!medicine) {
+    return errorResponse('medicine object is required in request body', 400);
+  }
+
+  if (!medicine.medicineName || !medicine.dosage || !medicine.frequency || !medicine.duration) {
+    return errorResponse('Medicine name, dosage, frequency, and duration are required', 400);
+  }
+
+  const { getTreatmentPlan, addMedicineToPlan } = await import('../shared/treatment-db');
+
+  // Verify plan exists and doctor owns it
+  const existingPlan = await getTreatmentPlan(patientId, treatmentPlanId);
+  if (!existingPlan) {
+    return errorResponse('Treatment plan not found', 404);
+  }
+
+  if (existingPlan.doctorId !== doctorId) {
+    return errorResponse('Access denied. You can only edit your own treatment plans.', 403);
+  }
+
+  // Extract account ID from Lambda context ARN
+  const accountId = context.invokedFunctionArn.split(':')[4];
+  const region = process.env.AWS_REGION || 'ap-south-1';
+  const reminderLambdaArn = `arn:aws:lambda:${region}:${accountId}:function:${REMINDER_LAMBDA_NAME}`;
+
+  // Generate schedule for the medicine
+  let times: string[];
+  let foodTiming: 'before food' | 'after food' | 'with food' | 'anytime' = 'anytime';
+
+  try {
+    const userPrompt = generateSchedulePrompt(
+      medicine.medicineName,
+      medicine.dosage,
+      medicine.frequency,
+      medicine.specialInstructions
+    );
+
+    const scheduleResponse = await callBedrockJson<ScheduleResponse>(
+      SCHEDULE_GENERATION_SYSTEM_PROMPT,
+      userPrompt,
+      ['medicineName', 'dosage', 'times', 'frequency'],
+      { timeout: 10000 }
+    );
+
+    times = scheduleResponse.times;
+    foodTiming = scheduleResponse.foodTiming || 'anytime';
+  } catch (bedrockError) {
+    console.warn('Bedrock schedule generation failed, using frequency parser:', bedrockError);
+    times = parseFrequencyToTimes(medicine.frequency);
+  }
+
+  const startDate = new Date();
+  const stopDate = calculateStopDate(startDate, medicine.duration);
+  const medicineId = uuidv4();
+
+  const prescription: Prescription = {
+    medicineId,
+    medicineName: medicine.medicineName,
+    dosage: medicine.dosage,
+    frequency: medicine.frequency,
+    times,
+    startDate: startDate.toISOString(),
+    stopDate,
+    specialInstructions: medicine.specialInstructions,
+    foodTiming
+  };
+
+  // Add medicine to plan
+  const updatedPlan = await addMedicineToPlan(patientId, treatmentPlanId, prescription);
+
+  // Create EventBridge rules for reminders
+  await createEventBridgeRules(patientId, prescription, reminderLambdaArn);
+
+  return successResponse({
+    message: 'Medicine added successfully',
+    medicine: prescription,
+    treatmentPlan: updatedPlan
+  });
+}
+
+/**
+ * Handle removing medicine from treatment plan
+ */
+async function handleRemoveMedicine(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  const pathParts = event.path.split('/');
+  const treatmentPlanId = pathParts[4]; // /api/treatment/plan/{planId}/medicine/{medicineId}
+  const medicineId = pathParts[6];
+
+  const patientId = event.queryStringParameters?.patientId;
+  const doctorId = event.queryStringParameters?.doctorId;
+
+  if (!patientId || !doctorId) {
+    return errorResponse('patientId and doctorId are required', 400);
+  }
+
+  const { getTreatmentPlan, removeMedicineFromPlan } = await import('../shared/treatment-db');
+
+  // Verify plan exists and doctor owns it
+  const existingPlan = await getTreatmentPlan(patientId, treatmentPlanId);
+  if (!existingPlan) {
+    return errorResponse('Treatment plan not found', 404);
+  }
+
+  if (existingPlan.doctorId !== doctorId) {
+    return errorResponse('Access denied. You can only edit your own treatment plans.', 403);
+  }
+
+  // Remove medicine from plan
+  const updatedPlan = await removeMedicineFromPlan(patientId, treatmentPlanId, medicineId);
+
+  return successResponse({
+    message: 'Medicine removed successfully',
+    treatmentPlan: updatedPlan
+  });
+}
+
+/**
+ * Handle updating medicine in treatment plan
+ */
+async function handleUpdateMedicine(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  if (!event.body) {
+    return errorResponse('Request body is required', 400);
+  }
+
+  const pathParts = event.path.split('/');
+  const treatmentPlanId = pathParts[4]; // /api/treatment/plan/{planId}/medicine/{medicineId}
+  const medicineId = pathParts[6];
+  const { patientId, doctorId, updates } = JSON.parse(event.body);
+
+  if (!patientId || !doctorId || !updates) {
+    return errorResponse('patientId, doctorId, and updates are required', 400);
+  }
+
+  const { getTreatmentPlan, updateMedicineInPlan } = await import('../shared/treatment-db');
+
+  // Verify plan exists and doctor owns it
+  const existingPlan = await getTreatmentPlan(patientId, treatmentPlanId);
+  if (!existingPlan) {
+    return errorResponse('Treatment plan not found', 404);
+  }
+
+  if (existingPlan.doctorId !== doctorId) {
+    return errorResponse('Access denied. You can only edit your own treatment plans.', 403);
+  }
+
+  // Update medicine in plan
+  const updatedPlan = await updateMedicineInPlan(patientId, treatmentPlanId, medicineId, updates);
+
+  return successResponse({
+    message: 'Medicine updated successfully',
+    treatmentPlan: updatedPlan
+  });
+}
+
+/**
+ * Handle treatment plan creation (legacy endpoint)
  */
 async function handleCreateTreatment(event: APIGatewayProxyEvent, context: any): Promise<APIGatewayProxyResult> {
   if (!event.body) {
@@ -196,6 +516,9 @@ async function handleCreateTreatment(event: APIGatewayProxyEvent, context: any):
   const treatmentPlan = await createTreatmentPlan({
     patientId: requestData.patientId,
     doctorId: requestData.doctorId,
+    planName: 'Legacy Treatment Plan', // Default name for legacy endpoint
+    disease: 'Not specified', // Default disease for legacy endpoint
+    duration: requestData.prescriptions[0]?.duration || '7 days', // Use first prescription duration
     prescriptions: scheduledMedicines
   });
 
@@ -258,6 +581,34 @@ async function createEventBridgeRules(
       console.error(`Failed to create EventBridge rule ${ruleName}:`, error);
       throw new Error(`Failed to schedule reminder for ${medicineName} at ${time}`);
     }
+  }
+}
+
+/**
+ * Handle getting all treatment plans for a patient
+ */
+async function handleGetTreatmentPlans(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  const pathParts = event.path.split('/');
+  const patientId = pathParts[pathParts.length - 1];
+
+  if (!patientId) {
+    return errorResponse('patientId is required', 400);
+  }
+
+  try {
+    const { getPatientTreatmentPlans } = await import('../shared/treatment-db');
+    const plans = await getPatientTreatmentPlans(patientId);
+
+    return successResponse({
+      plans,
+      count: plans.length
+    });
+  } catch (error: any) {
+    console.error('Error retrieving treatment plans:', error);
+    return errorResponse(
+      `Failed to retrieve treatment plans: ${error.message}`,
+      500
+    );
   }
 }
 
@@ -333,7 +684,9 @@ async function handleGetSchedule(event: APIGatewayProxyEvent): Promise<APIGatewa
         todayDoses: dosesWithStatus,
         stopDate: prescription.stopDate,
         specialInstructions: prescription.specialInstructions,
-        foodTiming: prescription.foodTiming
+        foodTiming: prescription.foodTiming,
+        planName: plan.planName,
+        treatmentPlanId: plan.treatmentPlanId
       };
     })
   );

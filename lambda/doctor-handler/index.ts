@@ -41,6 +41,16 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return await handleDeletePatient(event, doctorId);
     }
 
+    // Handle update patient status endpoint
+    if (event.httpMethod === 'PUT' && event.path.includes('/status')) {
+      return await handleUpdatePatientStatus(event, doctorId);
+    }
+
+    // Handle get patient relationship endpoint
+    if (event.httpMethod === 'GET' && event.path.includes('/relationship')) {
+      return await handleGetPatientRelationship(event, doctorId);
+    }
+
     return errorResponse('Invalid endpoint', 404);
   } catch (error) {
     console.error('Error in doctor handler:', error);
@@ -225,7 +235,8 @@ async function handleAddPatient(
       doctorId,
       body.patientId.trim(),
       body.addedVia,
-      body.accessGrantedBy
+      body.accessGrantedBy,
+      body.trackedSymptomId || null
     );
     
     console.log(`Patient ${body.patientId} added to doctor ${doctorId} via ${body.addedVia}`);
@@ -286,6 +297,118 @@ async function handleDeletePatient(
     
     return errorResponse(
       error.message || 'Failed to remove patient',
+      500
+    );
+  }
+}
+
+/**
+ * Update patient treatment status
+ */
+async function handleUpdatePatientStatus(
+  event: APIGatewayProxyEvent,
+  doctorId: string
+): Promise<APIGatewayProxyResult> {
+  try {
+    const patientId = event.pathParameters?.patientId;
+    
+    if (!patientId) {
+      return errorResponse('Patient ID is required', 400);
+    }
+    
+    const body = JSON.parse(event.body || '{}');
+    const { status } = body;
+    
+    if (!status || !['ongoing', 'past'].includes(status)) {
+      return errorResponse('Valid status is required (ongoing or past)', 400);
+    }
+    
+    // Import DynamoDB client
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(client);
+    
+    const tableName = process.env.DYNAMODB_TABLE;
+    
+    // Update the relationship status
+    await docClient.send(new UpdateCommand({
+      TableName: tableName,
+      Key: {
+        PK: `DOCTOR#${doctorId}`,
+        SK: `PATIENT#${patientId}`
+      },
+      UpdateExpression: 'SET treatmentStatus = :status, updatedAt = :updatedAt',
+      ExpressionAttributeValues: {
+        ':status': status,
+        ':updatedAt': new Date().toISOString()
+      }
+    }));
+    
+    console.log(`Patient ${patientId} status updated to ${status} for doctor ${doctorId}`);
+    
+    return successResponse({
+      message: 'Patient status updated successfully',
+      patientId,
+      status
+    });
+  } catch (error: any) {
+    console.error('Error updating patient status:', error);
+    
+    return errorResponse(
+      error.message || 'Failed to update patient status',
+      500
+    );
+  }
+}
+
+/**
+ * Get doctor-patient relationship details
+ */
+async function handleGetPatientRelationship(
+  event: APIGatewayProxyEvent,
+  doctorId: string
+): Promise<APIGatewayProxyResult> {
+  try {
+    const patientId = event.pathParameters?.patientId;
+    
+    if (!patientId) {
+      return errorResponse('Patient ID is required', 400);
+    }
+    
+    // Import DynamoDB client
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(client);
+    
+    const tableName = process.env.DYNAMODB_TABLE;
+    
+    // Get the relationship
+    const result = await docClient.send(new GetCommand({
+      TableName: tableName,
+      Key: {
+        PK: `DOCTOR#${doctorId}`,
+        SK: `PATIENT#${patientId}`
+      }
+    }));
+    
+    if (!result.Item) {
+      return errorResponse('Patient relationship not found', 404);
+    }
+    
+    return successResponse({
+      trackedSymptomId: result.Item.trackedSymptomId || null,
+      treatmentStatus: result.Item.treatmentStatus,
+      addedAt: result.Item.addedAt
+    });
+  } catch (error: any) {
+    console.error('Error getting patient relationship:', error);
+    
+    return errorResponse(
+      error.message || 'Failed to get patient relationship',
       500
     );
   }

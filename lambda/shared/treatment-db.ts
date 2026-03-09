@@ -309,3 +309,205 @@ export async function calculateAdherence(
   const takenDoses = doses.filter(dose => dose.status === 'taken').length;
   return Math.round((takenDoses / doses.length) * 100);
 }
+
+/**
+ * Update treatment plan metadata (planName, disease, duration)
+ * @param patientId - Patient ID
+ * @param treatmentPlanId - Treatment plan ID
+ * @param updates - Fields to update
+ * @returns Updated treatment plan
+ */
+export async function updateTreatmentPlanMetadata(
+  patientId: string,
+  treatmentPlanId: string,
+  updates: { planName?: string; disease?: string; duration?: string }
+): Promise<TreatmentPlan> {
+  const keys = DynamoDBKeys.treatment(patientId, treatmentPlanId);
+  const now = new Date().toISOString();
+
+  const updateExpressions: string[] = [];
+  const expressionAttributeNames: Record<string, string> = {};
+  const expressionAttributeValues: Record<string, any> = { ':updatedAt': now };
+
+  if (updates.planName !== undefined) {
+    updateExpressions.push('#planName = :planName');
+    expressionAttributeNames['#planName'] = 'planName';
+    expressionAttributeValues[':planName'] = updates.planName;
+  }
+
+  if (updates.disease !== undefined) {
+    updateExpressions.push('#disease = :disease');
+    expressionAttributeNames['#disease'] = 'disease';
+    expressionAttributeValues[':disease'] = updates.disease;
+  }
+
+  if (updates.duration !== undefined) {
+    updateExpressions.push('#duration = :duration');
+    expressionAttributeNames['#duration'] = 'duration';
+    expressionAttributeValues[':duration'] = updates.duration;
+  }
+
+  updateExpressions.push('updatedAt = :updatedAt');
+
+  const result = await dynamoDbClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: keys,
+      UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+      ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
+      ExpressionAttributeValues: expressionAttributeValues,
+      ReturnValues: 'ALL_NEW'
+    })
+  );
+
+  if (!result.Attributes) {
+    throw new Error('Failed to update treatment plan');
+  }
+
+  const { PK, SK, ...treatmentPlan } = result.Attributes;
+  return treatmentPlan as TreatmentPlan;
+}
+
+/**
+ * Add a medicine to an existing treatment plan
+ * @param patientId - Patient ID
+ * @param treatmentPlanId - Treatment plan ID
+ * @param prescription - Prescription to add
+ * @returns Updated treatment plan
+ */
+export async function addMedicineToPlan(
+  patientId: string,
+  treatmentPlanId: string,
+  prescription: Prescription
+): Promise<TreatmentPlan> {
+  const keys = DynamoDBKeys.treatment(patientId, treatmentPlanId);
+  const now = new Date().toISOString();
+
+  // Get current plan
+  const currentPlan = await getTreatmentPlan(patientId, treatmentPlanId);
+  if (!currentPlan) {
+    throw new Error('Treatment plan not found');
+  }
+
+  // Add new prescription
+  const updatedPrescriptions = [...currentPlan.prescriptions, prescription];
+
+  const result = await dynamoDbClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: keys,
+      UpdateExpression: 'SET prescriptions = :prescriptions, updatedAt = :updatedAt',
+      ExpressionAttributeValues: {
+        ':prescriptions': updatedPrescriptions,
+        ':updatedAt': now
+      },
+      ReturnValues: 'ALL_NEW'
+    })
+  );
+
+  if (!result.Attributes) {
+    throw new Error('Failed to add medicine to treatment plan');
+  }
+
+  const { PK, SK, ...treatmentPlan } = result.Attributes;
+  return treatmentPlan as TreatmentPlan;
+}
+
+/**
+ * Remove a medicine from a treatment plan
+ * @param patientId - Patient ID
+ * @param treatmentPlanId - Treatment plan ID
+ * @param medicineId - Medicine ID to remove
+ * @returns Updated treatment plan
+ */
+export async function removeMedicineFromPlan(
+  patientId: string,
+  treatmentPlanId: string,
+  medicineId: string
+): Promise<TreatmentPlan> {
+  const keys = DynamoDBKeys.treatment(patientId, treatmentPlanId);
+  const now = new Date().toISOString();
+
+  // Get current plan
+  const currentPlan = await getTreatmentPlan(patientId, treatmentPlanId);
+  if (!currentPlan) {
+    throw new Error('Treatment plan not found');
+  }
+
+  // Remove prescription
+  const updatedPrescriptions = currentPlan.prescriptions.filter(
+    p => p.medicineId !== medicineId
+  );
+
+  const result = await dynamoDbClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: keys,
+      UpdateExpression: 'SET prescriptions = :prescriptions, updatedAt = :updatedAt',
+      ExpressionAttributeValues: {
+        ':prescriptions': updatedPrescriptions,
+        ':updatedAt': now
+      },
+      ReturnValues: 'ALL_NEW'
+    })
+  );
+
+  if (!result.Attributes) {
+    throw new Error('Failed to remove medicine from treatment plan');
+  }
+
+  const { PK, SK, ...treatmentPlan } = result.Attributes;
+  return treatmentPlan as TreatmentPlan;
+}
+
+/**
+ * Update a medicine in a treatment plan
+ * @param patientId - Patient ID
+ * @param treatmentPlanId - Treatment plan ID
+ * @param medicineId - Medicine ID to update
+ * @param updates - Fields to update
+ * @returns Updated treatment plan
+ */
+export async function updateMedicineInPlan(
+  patientId: string,
+  treatmentPlanId: string,
+  medicineId: string,
+  updates: Partial<Prescription>
+): Promise<TreatmentPlan> {
+  const keys = DynamoDBKeys.treatment(patientId, treatmentPlanId);
+  const now = new Date().toISOString();
+
+  // Get current plan
+  const currentPlan = await getTreatmentPlan(patientId, treatmentPlanId);
+  if (!currentPlan) {
+    throw new Error('Treatment plan not found');
+  }
+
+  // Update prescription
+  const updatedPrescriptions = currentPlan.prescriptions.map(p => {
+    if (p.medicineId === medicineId) {
+      return { ...p, ...updates };
+    }
+    return p;
+  });
+
+  const result = await dynamoDbClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: keys,
+      UpdateExpression: 'SET prescriptions = :prescriptions, updatedAt = :updatedAt',
+      ExpressionAttributeValues: {
+        ':prescriptions': updatedPrescriptions,
+        ':updatedAt': now
+      },
+      ReturnValues: 'ALL_NEW'
+    })
+  );
+
+  if (!result.Attributes) {
+    throw new Error('Failed to update medicine in treatment plan');
+  }
+
+  const { PK, SK, ...treatmentPlan } = result.Attributes;
+  return treatmentPlan as TreatmentPlan;
+}

@@ -208,7 +208,8 @@ export async function addPatientToDoctor(
   doctorId: string,
   patientId: string,
   addedVia: 'qr_scan' | 'manual_code',
-  accessGrantedBy: string
+  accessGrantedBy: string,
+  trackedSymptomId?: string | null
 ): Promise<DoctorPatientRelationship> {
   // Get patient details to populate the relationship
   const patient = await getPatient(patientId);
@@ -229,7 +230,8 @@ export async function addPatientToDoctor(
     addedVia,
     lastConsultation: now,
     treatmentStatus: 'ongoing',
-    accessGrantedBy
+    accessGrantedBy,
+    ...(trackedSymptomId && { trackedSymptomId })
   };
 
   await dynamoDbClient.send(
@@ -310,14 +312,47 @@ export async function getDoctorPatients(
   const endIndex = startIndex + limit;
   const paginatedRelationships = relationships.slice(startIndex, endIndex);
 
-  // Convert to PatientListItem format
-  const patients: PatientListItem[] = paginatedRelationships.map(rel => ({
-    patientId: rel.patientId,
-    uhid: rel.uhid,
-    name: rel.patientName,
-    lastConsultation: rel.lastConsultation,
-    treatmentStatus: rel.treatmentStatus
-  }));
+  // Convert to PatientListItem format and fetch tracked disease names
+  const patients: PatientListItem[] = await Promise.all(
+    paginatedRelationships.map(async (rel) => {
+      const patientItem: PatientListItem = {
+        patientId: rel.patientId,
+        uhid: rel.uhid,
+        name: rel.patientName,
+        lastConsultation: rel.lastConsultation,
+        treatmentStatus: rel.treatmentStatus,
+        unreadMessages: 0
+      };
+
+      // If there's a tracked symptom, fetch its disease name
+      if (rel.trackedSymptomId) {
+        try {
+          const symptomResult = await dynamoDbClient.send(
+            new GetCommand({
+              TableName: TABLE_NAME,
+              Key: {
+                PK: `PATIENT#${rel.patientId}`,
+                SK: `SYMPTOM#${rel.trackedSymptomId}`
+              }
+            })
+          );
+
+          if (symptomResult.Item && symptomResult.Item.diseaseAnalysis) {
+            const topDisease = symptomResult.Item.diseaseAnalysis[0];
+            if (topDisease) {
+              patientItem.trackedSymptomId = rel.trackedSymptomId;
+              patientItem.trackedDiseaseName = topDisease.diseaseName;
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch tracked symptom ${rel.trackedSymptomId}:`, error);
+          // Continue without tracked disease info
+        }
+      }
+
+      return patientItem;
+    })
+  );
 
   return {
     patients,

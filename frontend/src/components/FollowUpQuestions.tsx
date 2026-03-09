@@ -9,6 +9,7 @@ interface Question {
   questionText: string;
   questionType: 'text' | 'yes_no' | 'multiple_choice' | 'scale';
   options?: string[];
+  tags?: string[]; // Medical terms extracted from question
 }
 
 interface StructuredSymptoms {
@@ -55,7 +56,9 @@ export default function FollowUpQuestions() {
   }, [location]);
 
   const handleAnswerChange = (value: string) => {
-    setCurrentAnswer(value);
+    // Limit answer to 100 characters
+    const limitedValue = value.substring(0, 100);
+    setCurrentAnswer(limitedValue);
   };
 
   const handleNext = async () => {
@@ -88,7 +91,9 @@ export default function FollowUpQuestions() {
   };
 
   const handleListAnswerChange = (questionId: string, value: string) => {
-    setAnswers({ ...answers, [questionId]: value });
+    // Limit answer to 100 characters
+    const limitedValue = value.substring(0, 100);
+    setAnswers({ ...answers, [questionId]: limitedValue });
   };
 
   const handleSubmitAll = async (e: FormEvent) => {
@@ -112,11 +117,16 @@ export default function FollowUpQuestions() {
       const user = JSON.parse(userStr);
       const patientId = user.userId; // userId is the patientId
 
-      // Submit all answers
-      const answerArray = Object.entries(answers).map(([questionId, answer]) => ({
-        questionId,
-        answer,
-      }));
+      // Submit all answers with question text and tags
+      const answerArray = Object.entries(answers).map(([questionId, answer]) => {
+        const question = questions.find(q => q.questionId === questionId);
+        return {
+          questionId,
+          questionText: question?.questionText || '',
+          answer: answer.substring(0, 100), // Enforce 100 char limit
+          tags: question?.tags || []
+        };
+      });
 
       const response = await axiosInstance.post<AnswerSubmitResponse>('/symptoms/followup/answer', {
         patientId,
@@ -336,28 +346,17 @@ export default function FollowUpQuestions() {
       <Header />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Demo Data Warning */}
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-yellow-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                <strong>DEMO DATA ONLY</strong> - Do not enter real medical information.
-              </p>
-            </div>
-          </div>
+        {/* Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+          >
+            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Dashboard
+          </button>
         </div>
 
         <div className="bg-white shadow rounded-lg p-6">
@@ -518,14 +517,20 @@ export default function FollowUpQuestions() {
                     </div>
                   </div>
                 ) : (
-                  <textarea
-                    value={currentAnswer}
-                    onChange={(e) => handleAnswerChange(e.target.value)}
-                    rows={4}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Type your answer here..."
-                    disabled={isSubmitting}
-                  />
+                  <div>
+                    <textarea
+                      value={currentAnswer}
+                      onChange={(e) => handleAnswerChange(e.target.value)}
+                      rows={4}
+                      maxLength={100}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      placeholder="Type your answer here..."
+                      disabled={isSubmitting}
+                    />
+                    <p className="mt-1 text-xs text-gray-500 text-right">
+                      {currentAnswer.length}/100 characters
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -659,14 +664,20 @@ export default function FollowUpQuestions() {
                       </div>
                     </div>
                   ) : (
-                    <textarea
-                      value={answers[question.questionId] || ''}
-                      onChange={(e) => handleListAnswerChange(question.questionId, e.target.value)}
-                      rows={3}
-                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      placeholder="Type your answer here (optional)..."
-                      disabled={isSubmitting}
-                    />
+                    <div>
+                      <textarea
+                        value={answers[question.questionId] || ''}
+                        onChange={(e) => handleListAnswerChange(question.questionId, e.target.value)}
+                        rows={3}
+                        maxLength={100}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="Type your answer here (optional)..."
+                        disabled={isSubmitting}
+                      />
+                      <p className="mt-1 text-xs text-gray-500 text-right">
+                        {(answers[question.questionId] || '').length}/100 characters
+                      </p>
+                    </div>
                   )}
                 </div>
               ))}

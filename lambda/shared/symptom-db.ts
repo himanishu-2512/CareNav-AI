@@ -94,13 +94,22 @@ export async function updateSymptomWithAnswers(
 ): Promise<Symptom> {
   const keys = DynamoDBKeys.symptom(patientId, symptomId);
 
+  // First, get the existing symptom to retrieve current answers
+  const existingSymptom = await getSymptom(patientId, symptomId);
+  if (!existingSymptom) {
+    throw new Error('Symptom not found');
+  }
+
+  // Append new answers to existing answers
+  const allAnswers = [...(existingSymptom.followUpAnswers || []), ...followUpAnswers];
+
   const result = await dynamoDbClient.send(
     new UpdateCommand({
       TableName: TABLE_NAME,
       Key: keys,
       UpdateExpression: 'SET followUpAnswers = :answers',
       ExpressionAttributeValues: {
-        ':answers': followUpAnswers
+        ':answers': allAnswers
       },
       ReturnValues: 'ALL_NEW'
     })

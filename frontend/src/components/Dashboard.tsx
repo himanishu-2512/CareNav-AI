@@ -26,6 +26,19 @@ export default function Dashboard() {
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
 
+  // Calculate age from date of birth
+  const calculateAge = (dob: string): number => {
+    if (!dob) return 0;
+    const today = new Date();
+    const birthDate = new Date(dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   // Load symptom history for patients
   useEffect(() => {
     if (user?.role === 'patient') {
@@ -117,20 +130,73 @@ export default function Dashboard() {
         {user?.role === 'patient' ? (
           /* Patient Dashboard */
           <div className="space-y-6">
-            {/* Welcome Section */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Welcome back!
-              </h2>
-              <p className="text-gray-600">
-                Manage your symptoms and health records
-              </p>
+            {/* Welcome Section with Patient Profile */}
+            <div className="bg-white shadow rounded-lg p-6 border-t-4 border-red-500">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Welcome back!
+                  </h2>
+                  <p className="text-gray-600 mb-4">
+                    Manage your symptoms and health records
+                  </p>
+                  
+                  {/* Patient Profile Details */}
+                  <div className="bg-gray-50 rounded-lg p-4 mt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Name</p>
+                        <p className="text-sm font-medium text-gray-900">{user?.name || 'Not set'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Email</p>
+                        <p className="text-sm font-medium text-gray-900">{user?.email || 'Not set'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Age</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {user?.dateOfBirth 
+                            ? `${calculateAge(user.dateOfBirth)} years` 
+                            : (user?.age ? `${user.age} years` : 'Not set')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Gender</p>
+                        <p className="text-sm font-medium text-gray-900 capitalize">{user?.gender || 'Not set'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Blood Group</p>
+                        <p className="text-sm font-medium text-gray-900">{user?.bloodGroup || 'Not set'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Contact</p>
+                        <p className="text-sm font-medium text-gray-900">{user?.contact || 'Not set'}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-gray-500">Parent/Guardian</p>
+                        <p className="text-sm font-medium text-gray-900">{user?.parentName || 'Not set'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Edit Profile Icon */}
+                <button
+                  onClick={() => navigate('/profile/edit')}
+                  className="ml-4 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                  title="Edit Profile"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Add New Symptom */}
-              <div className="bg-white shadow rounded-lg p-6">
+              <div className="bg-white shadow rounded-lg p-6 border-t-4 border-blue-600">
                 <div className="flex items-center mb-4">
                   <div className="flex-shrink-0">
                     <svg className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -153,7 +219,7 @@ export default function Dashboard() {
               </div>
 
               {/* Generate QR Code */}
-              <div className="bg-white shadow rounded-lg p-6">
+              <div className="bg-white shadow rounded-lg p-6 border-t-4 border-green-600">
                 <div className="flex items-center mb-4">
                   <div className="flex-shrink-0">
                     <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -176,26 +242,49 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              {/* Edit Profile */}
-              <div className="bg-white shadow rounded-lg p-6">
+              {/* Medicine Schedule - Yellow Line Feature 1 */}
+              <div className="bg-white shadow rounded-lg p-6 border-t-4 border-orange-600">
                 <div className="flex items-center mb-4">
                   <div className="flex-shrink-0">
-                    <svg className="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    <svg className="h-8 w-8 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                     </svg>
                   </div>
                   <h3 className="ml-3 text-lg font-semibold text-gray-900">
-                    My Profile
+                    Medicine Schedule
                   </h3>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">
-                  Update your personal information and medical history
+                  View your medications and dosage schedule
                 </p>
                 <button
-                  onClick={() => navigate('/profile/edit')}
-                  className="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  onClick={() => navigate('/treatment/schedule')}
+                  className="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                 >
-                  Edit Profile
+                  View Medicine Schedule
+                </button>
+              </div>
+
+              {/* Department Predictor - Yellow Line Feature 2 */}
+              <div className="bg-white shadow rounded-lg p-6 border-t-4 border-indigo-600">
+                <div className="flex items-center mb-4">
+                  <div className="flex-shrink-0">
+                    <svg className="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <h3 className="ml-3 text-lg font-semibold text-gray-900">
+                    Department Finder
+                  </h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  AI-powered department recommendation based on symptoms
+                </p>
+                <button
+                  onClick={() => navigate('/department/finder')}
+                  className="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Find Department
                 </button>
               </div>
             </div>
@@ -332,50 +421,117 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-
-            {/* Disclaimer */}
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-yellow-700">
-                    This system does not diagnose diseases or provide medical advice. Always consult a qualified healthcare provider.
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         ) : (
           /* Doctor Dashboard */
           <div className="space-y-6">
+            {/* Welcome Section */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 Doctor Dashboard
               </h2>
+              <p className="text-gray-600">
+                Manage patients, prescriptions, and treatment plans
+              </p>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button
-                  onClick={() => navigate('/treatment/planner')}
-                  className="py-4 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                  Create Treatment Plan
-                </button>
-                <button
-                  onClick={() => navigate('/patients/summary')}
-                  className="py-4 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  View Patient Summary
-                </button>
-                <button
-                  onClick={() => navigate('/adherence/dashboard')}
-                  className="py-4 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-                >
-                  Adherence Dashboard
-                </button>
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <button
+                onClick={() => navigate('/doctor/patients')}
+                className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow border-t-4 border-blue-600 text-left"
+              >
+                <div className="flex items-center mb-3">
+                  <svg className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Patient List</h3>
+                <p className="text-sm text-gray-600">View all registered patients</p>
+              </button>
+
+              <button
+                onClick={() => navigate('/doctor/prescribe')}
+                className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow border-t-4 border-green-600 text-left"
+              >
+                <div className="flex items-center mb-3">
+                  <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Prescribe Medicine</h3>
+                <p className="text-sm text-gray-600">Create new prescription</p>
+              </button>
+
+              <button
+                onClick={() => navigate('/treatment/planner')}
+                className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow border-t-4 border-purple-600 text-left"
+              >
+                <div className="flex items-center mb-3">
+                  <svg className="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Treatment Plan</h3>
+                <p className="text-sm text-gray-600">Create treatment schedule</p>
+              </button>
+
+              <button
+                onClick={() => navigate('/adherence/dashboard')}
+                className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow border-t-4 border-orange-600 text-left"
+              >
+                <div className="flex items-center mb-3">
+                  <svg className="h-8 w-8 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Adherence</h3>
+                <p className="text-sm text-gray-600">Track medication adherence</p>
+              </button>
+            </div>
+
+            {/* Additional Features */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Access</h3>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => navigate('/patients/summary')}
+                    className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-between"
+                  >
+                    <span className="text-sm font-medium text-gray-700">Patient Summary</span>
+                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => navigate('/doctor/qr-scanner')}
+                    className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-between"
+                  >
+                    <span className="text-sm font-medium text-gray-700">Scan Patient QR</span>
+                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Statistics</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Total Patients</span>
+                    <span className="text-lg font-semibold text-gray-900">-</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Active Treatments</span>
+                    <span className="text-lg font-semibold text-gray-900">-</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Pending Reviews</span>
+                    <span className="text-lg font-semibold text-gray-900">-</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -384,8 +540,8 @@ export default function Dashboard() {
 
       {/* QR Code Modal */}
       {showQRModal && qrCode && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 my-8">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Your QR Code</h3>
               <button
@@ -427,8 +583,8 @@ export default function Dashboard() {
 
       {/* Add Details Modal */}
       {showAddDetailsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 my-8">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Add More Details</h3>
               <button

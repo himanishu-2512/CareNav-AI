@@ -7,6 +7,8 @@ export interface Patient {
   dateOfBirth?: string; // ISO date string (YYYY-MM-DD)
   gender: string;
   contact: string;
+  bloodGroup?: string; // A+, A-, B+, B-, AB+, AB-, O+, O-
+  parentName?: string; // Parent or guardian name
   weight?: number; // in kg
   createdAt: string;
   updatedAt?: string;
@@ -48,6 +50,7 @@ export interface FollowUpAnswer {
   questionText: string; // Store the question text for better summaries
   answer: string;
   answeredAt?: string; // Timestamp when answered
+  tags?: string[]; // Medical terms extracted from the question
 }
 
 export interface CareNavigation {
@@ -98,8 +101,12 @@ export interface TreatmentPlan {
   treatmentPlanId: string;
   patientId: string;
   doctorId: string;
+  planName: string; // Name of the treatment plan
+  disease: string; // Disease being treated
+  duration: string; // Duration (e.g., "7 days", "2 weeks")
   prescriptions: Prescription[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Dose {
@@ -127,8 +134,11 @@ export interface User {
   licenseNumber?: string;
   // Patient-specific fields
   age?: number;
+  dateOfBirth?: string; // ISO date string (YYYY-MM-DD)
   gender?: string;
   contact?: string;
+  bloodGroup?: string; // A+, A-, B+, B-, AB+, AB-, O+, O-
+  parentName?: string; // Parent or guardian name
 }
 
 export interface Session {
@@ -246,6 +256,7 @@ export interface TargetedQuestion {
   targetDiseases: string[]; // Which diseases this question helps differentiate
   importance: 'high' | 'medium' | 'low';
   options?: string[]; // For multiple_choice type
+  tags?: string[]; // Medical terms/topics covered by this question (extracted via Comprehend Medical)
 }
 
 export interface QuestionAnswer {
@@ -395,6 +406,7 @@ export interface DoctorPatientRelationship {
   lastConsultation: string;
   treatmentStatus: 'ongoing' | 'past';
   accessGrantedBy: string; // QR token ID or code
+  trackedSymptomId?: string; // Optional: specific symptom/disease to track
 }
 
 export interface PatientListItem {
@@ -403,6 +415,9 @@ export interface PatientListItem {
   name: string;
   lastConsultation: string;
   treatmentStatus: 'ongoing' | 'past';
+  unreadMessages?: number;
+  trackedSymptomId?: string;
+  trackedDiseaseName?: string;
 }
 
 export interface DoctorPatientsResponse {

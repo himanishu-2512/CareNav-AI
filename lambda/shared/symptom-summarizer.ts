@@ -1,8 +1,9 @@
-// AI-powered symptom summarizer
+// Medical symptom summarizer using AWS Comprehend Medical
 import { FollowUpAnswer, StructuredSymptoms, DiseaseCandidate } from './types';
+import { extractMedicalEntities, extractSymptoms, extractMedications } from './comprehend-medical-client';
 
 /**
- * Generate a comprehensive AI summary of patient's symptoms and answers
+ * Generate a comprehensive clinical summary using Comprehend Medical analysis
  */
 export async function generateSymptomSummary(
   symptomText: string,
@@ -10,59 +11,90 @@ export async function generateSymptomSummary(
   followUpAnswers: FollowUpAnswer[],
   diseaseAnalysis: DiseaseCandidate[]
 ): Promise<string> {
-  const { callBedrock } = await import('./bedrock-client');
-  
-  // Build Q&A context
-  const qaContext = followUpAnswers.map((a, i) => 
-    `Q${i + 1}: ${a.questionText}\nA${i + 1}: ${a.answer}`
-  ).join('\n\n');
-  
-  const prompt = `You are a medical AI assistant. Generate a clear, concise clinical summary of the patient's condition based on their symptoms and answers to follow-up questions.
-
-INITIAL SYMPTOM DESCRIPTION:
-"${symptomText}"
-
-STRUCTURED ANALYSIS:
-- Body Part: ${structuredSymptoms.bodyPart}
-- Severity: ${structuredSymptoms.severity}
-- Duration: ${structuredSymptoms.duration}
-- Character: ${structuredSymptoms.character}
-
-FOLLOW-UP QUESTIONS AND ANSWERS (${followUpAnswers.length} total):
-${qaContext}
-
-POSSIBLE CONDITIONS IDENTIFIED:
-${diseaseAnalysis.map((d, i) => `${i + 1}. ${d.diseaseName} (${(d.probability * 100).toFixed(0)}% probability) - ${d.reasoning}`).join('\n')}
-
-INSTRUCTIONS:
-Generate a professional clinical summary that includes:
-1. Chief Complaint (1-2 sentences)
-2. Key Symptoms and Characteristics (bullet points)
-3. Relevant Medical History (from answers)
-4. Clinical Impression (possible conditions)
-5. Important Findings (red flags or significant details)
-
-Keep it concise, professional, and easy for a doctor to quickly understand the patient's condition.
-
-RESPONSE FORMAT (plain text, not JSON):
-Generate the summary now:`;
-
   try {
-    const summary = await callBedrock('You are a medical AI assistant.', prompt);
-    return summary.trim();
+    console.log('Generating clinical summary using Comprehend Medical...');
+    
+    // Extract medical entities from all answers
+    const allText = [symptomText, ...followUpAnswers.map(a => String(a.answer))].join(' ');
+    const entities = await extractMedicalEntities(allText);
+    const symptoms = extractSymptoms(entities);
+    const medications = extractMedications(entities);
+    
+    // Build structured summary
+    const sections: string[] = [];
+    
+    // 1. Chief Complaint
+    sections.push(`CHIEF COMPLAINT:\n${symptomText}`);
+    
+    // 2. Key Symptoms
+    sections.push(`\nKEY SYMPTOMS:`);
+    sections.push(`- Location: ${structuredSymptoms.bodyPart}`);
+    sections.push(`- Severity: ${structuredSymptoms.severity}`);
+    sections.push(`- Duration: ${structuredSymptoms.duration}`);
+    if (symptoms.length > 0) {
+      sections.push(`- Identified Symptoms: ${symptoms.join(', ')}`);
+    }
+    
+    // 3. Medical History (from answers)
+    sections.push(`\nMEDICAL HISTORY:`);
+    const historyAnswers = followUpAnswers.filter(a => 
+      a.questionText.toLowerCase().includes('medical condition') ||
+      a.questionText.toLowerCase().includes('medication') ||
+      a.questionText.toLowerCase().includes('allerg')
+    );
+    
+    if (historyAnswers.length > 0) {
+      historyAnswers.forEach(a => {
+        sections.push(`- ${a.questionText}: ${a.answer}`);
+      });
+    } else {
+      sections.push(`- No significant medical history reported`);
+    }
+    
+    if (medications.length > 0) {
+      sections.push(`- Medications Mentioned: ${medications.join(', ')}`);
+    }
+    
+    // 4. Clinical Impression
+    sections.push(`\nCLINICAL IMPRESSION:`);
+    diseaseAnalysis.slice(0, 3).forEach((d, i) => {
+      sections.push(`${i + 1}. ${d.diseaseName} (${(d.probability * 100).toFixed(0)}% probability)`);
+      sections.push(`   Reasoning: ${d.reasoning}`);
+    });
+    
+    // 5. Important Findings
+    sections.push(`\nIMPORTANT FINDINGS:`);
+    const severeAnswers = followUpAnswers.filter(a => 
+      String(a.answer).toLowerCase().includes('severe') ||
+      String(a.answer).toLowerCase().includes('worse') ||
+      String(a.answer).toLowerCase().includes('unable')
+    );
+    
+    if (severeAnswers.length > 0) {
+      severeAnswers.forEach(a => {
+        sections.push(`- ${a.questionText}: ${a.answer}`);
+      });
+    } else {
+      sections.push(`- No critical red flags identified`);
+    }
+    
+    sections.push(`\nTOTAL QUESTIONS ANSWERED: ${followUpAnswers.length}/20`);
+    
+    return sections.join('\n');
+    
   } catch (error) {
-    console.error('Error generating AI summary:', error);
+    console.error('Error generating summary:', error);
     // Fallback to basic summary
-    return `Chief Complaint: ${symptomText}
+    return `CHIEF COMPLAINT: ${symptomText}
 
-Key Symptoms:
+KEY SYMPTOMS:
 - Location: ${structuredSymptoms.bodyPart}
 - Severity: ${structuredSymptoms.severity}
 - Duration: ${structuredSymptoms.duration}
 
-Total Questions Answered: ${followUpAnswers.length}
+TOTAL QUESTIONS ANSWERED: ${followUpAnswers.length}
 
-Possible Conditions:
+POSSIBLE CONDITIONS:
 ${diseaseAnalysis.map((d, i) => `${i + 1}. ${d.diseaseName} (${(d.probability * 100).toFixed(0)}%)`).join('\n')}`;
   }
 }
@@ -75,20 +107,18 @@ export async function generateBriefSummary(
   structuredSymptoms: StructuredSymptoms,
   followUpAnswers: FollowUpAnswer[]
 ): Promise<string> {
-  const { callBedrock } = await import('./bedrock-client');
-  
-  const prompt = `Generate a brief one-line clinical summary (max 100 characters) of this patient's condition:
-
-Initial Symptom: "${symptomText}"
-Body Part: ${structuredSymptoms.bodyPart}
-Severity: ${structuredSymptoms.severity}
-Questions Answered: ${followUpAnswers.length}
-
-Generate a concise summary:`;
-
   try {
-    const summary = await callBedrock('You are a medical AI assistant.', prompt);
-    return summary.trim().substring(0, 100);
+    // Extract key symptoms using Comprehend Medical
+    const entities = await extractMedicalEntities(symptomText);
+    const symptoms = extractSymptoms(entities);
+    
+    if (symptoms.length > 0) {
+      const topSymptoms = symptoms.slice(0, 2).join(', ');
+      return `${structuredSymptoms.severity} ${topSymptoms} - ${structuredSymptoms.duration}`;
+    }
+    
+    return `${structuredSymptoms.severity} ${structuredSymptoms.bodyPart} symptoms - ${structuredSymptoms.duration}`;
+    
   } catch (error) {
     console.error('Error generating brief summary:', error);
     return `${structuredSymptoms.severity} ${structuredSymptoms.bodyPart} symptoms, ${followUpAnswers.length} questions answered`;

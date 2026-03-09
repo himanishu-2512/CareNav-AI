@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { PatientProvider } from './contexts/PatientContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import PatientRegistration from './components/PatientRegistration';
@@ -11,8 +12,14 @@ import EditProfile from './components/EditProfile';
 import FollowUpQuestions from './components/FollowUpQuestions';
 import CareNavigation from './components/CareNavigation';
 import DepartmentFinder from './components/DepartmentFinder';
+import DepartmentPredictor from './components/DepartmentPredictor';
 import DoctorList from './components/DoctorList';
 import Messages from './components/Messages';
+import PatientList from './components/PatientList';
+import PrescribeMedicine from './components/PrescribeMedicine';
+import PatientTreatmentPlans from './components/PatientTreatmentPlans';
+import PatientAdherence from './components/PatientAdherence';
+import CreateTreatmentPlan from './components/CreateTreatmentPlan';
 import { ReportUpload } from './components/ReportUpload';
 import { TreatmentSchedule } from './components/TreatmentSchedule';
 import { TreatmentPlanner } from './components/TreatmentPlanner';
@@ -54,6 +61,7 @@ function AppRoutes() {
       <Route path="/symptoms/chat" element={<ProtectedRoute><SymptomChat /></ProtectedRoute>} />
       <Route path="/symptoms/:symptomId" element={<ProtectedRoute><SymptomDetail /></ProtectedRoute>} />
       <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+      <Route path="/department/finder" element={<ProtectedRoute><DepartmentPredictor /></ProtectedRoute>} />
       <Route path="/departments" element={<ProtectedRoute><DepartmentFinder /></ProtectedRoute>} />
       <Route path="/doctors" element={<ProtectedRoute><DoctorList /></ProtectedRoute>} />
       <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
@@ -68,10 +76,19 @@ function AppRoutes() {
       
       {/* Doctor Routes */}
       <Route path="/doctor/dashboard" element={<ProtectedRoute><DoctorDashboardPage /></ProtectedRoute>} />
+      <Route path="/doctor/patients" element={<ProtectedRoute><PatientList /></ProtectedRoute>} />
+      <Route path="/doctor/prescribe" element={<ProtectedRoute><PrescribeMedicine /></ProtectedRoute>} />
+      <Route path="/doctor/patient/:patientId/prescribe" element={<ProtectedRoute><PrescribeMedicine /></ProtectedRoute>} />
+      <Route path="/doctor/patient/:patientId/treatments" element={<ProtectedRoute><PatientTreatmentPlans /></ProtectedRoute>} />
+      <Route path="/doctor/patient/:patientId/adherence" element={<ProtectedRoute><PatientAdherence /></ProtectedRoute>} />
       <Route path="/doctor/qr-scanner" element={<ProtectedRoute><QRScannerPage /></ProtectedRoute>} />
       <Route path="/doctor/patient/:patientId" element={<ProtectedRoute><PatientProfilePage /></ProtectedRoute>} />
       <Route path="/doctor/treatment/:episodeId" element={<ProtectedRoute><TreatmentChatPage /></ProtectedRoute>} />
       <Route path="/doctor/prescription/:episodeId" element={<ProtectedRoute><PrescriptionFormPage /></ProtectedRoute>} />
+      
+      {/* Treatment Plan Routes (New Workflow) */}
+      <Route path="/doctor/create-treatment-plan" element={<ProtectedRoute><CreateTreatmentPlan /></ProtectedRoute>} />
+      <Route path="/doctor/treatment-plan/:planId" element={<ProtectedRoute><TreatmentPlanner /></ProtectedRoute>} />
       
       <Route path="/" element={<Navigate to={isAuthenticated ? defaultDashboard : "/login"} replace />} />
     </Routes>
@@ -82,7 +99,9 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppRoutes />
+        <PatientProvider>
+          <AppRoutes />
+        </PatientProvider>
       </AuthProvider>
     </Router>
   );

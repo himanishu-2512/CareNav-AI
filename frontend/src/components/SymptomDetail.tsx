@@ -17,7 +17,9 @@ export default function SymptomDetail() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [summary, setSummary] = useState<string>('');
+  const [finalSummary, setFinalSummary] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const isDoctor = user?.role === 'doctor';
 
   useEffect(() => {
     loadSymptomDetail();
@@ -60,7 +62,7 @@ export default function SymptomDetail() {
 
       setMessages(chatMessages);
 
-      // Generate summary
+      // Generate detailed analysis summary (for doctors only)
       const summaryText = `
 **Symptom Summary**
 
@@ -77,6 +79,14 @@ ${symptom.diseaseAnalysis?.map((d: any, i: number) =>
       `.trim();
 
       setSummary(summaryText);
+
+      // Generate final summary (for both patients and doctors)
+      const topCondition = symptom.diseaseAnalysis?.[0];
+      const finalSummaryText = topCondition 
+        ? `Based on your symptoms, the most likely condition is **${topCondition.diseaseName}** with ${(topCondition.probability * 100).toFixed(0)}% probability. Please consult with a healthcare professional for proper diagnosis and treatment.`
+        : 'Your symptom report has been recorded. Please consult with a healthcare professional for proper diagnosis.';
+      
+      setFinalSummary(finalSummaryText);
     } catch (error) {
       console.error('Failed to load symptom detail:', error);
       alert('Failed to load symptom details');
@@ -117,15 +127,15 @@ ${symptom.diseaseAnalysis?.map((d: any, i: number) =>
           </button>
         </div>
 
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-white shadow rounded-lg max-h-[85vh] overflow-y-auto">
           {/* Chat Header */}
-          <div className="border-b border-gray-200 px-6 py-4">
+          <div className="border-b border-gray-200 px-6 py-4 sticky top-0 bg-white z-10">
             <h2 className="text-xl font-semibold text-gray-900">Symptom Conversation</h2>
             <p className="text-sm text-gray-500 mt-1">Review your symptom report and analysis</p>
           </div>
 
           {/* Chat Messages */}
-          <div className="px-6 py-4 space-y-4 max-h-96 overflow-y-auto">
+          <div className="px-6 py-4 space-y-4">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -147,11 +157,21 @@ ${symptom.diseaseAnalysis?.map((d: any, i: number) =>
             ))}
           </div>
 
-          {/* Summary Section */}
-          <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Analysis Summary</h3>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">{summary}</pre>
+          {/* Summary Section - Only for Doctors */}
+          {isDoctor && (
+            <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Analysis Summary</h3>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">{summary}</pre>
+              </div>
+            </div>
+          )}
+
+          {/* Final Summary - For Both Patients and Doctors */}
+          <div className="border-t border-gray-200 px-6 py-4 bg-blue-50">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Summary</h3>
+            <div className="bg-white rounded-lg p-4 border border-blue-200">
+              <p className="text-sm text-gray-700">{finalSummary}</p>
             </div>
           </div>
         </div>

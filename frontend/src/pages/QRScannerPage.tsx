@@ -28,6 +28,19 @@ export const QRScannerPage: React.FC = () => {
 
   return (
     <div className="p-6">
+      {/* Back Button */}
+      <div className="mb-6">
+        <button
+          onClick={() => navigate('/doctor/dashboard')}
+          className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+        >
+          <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Dashboard
+        </button>
+      </div>
+
       <h1 className="text-2xl font-bold mb-6">Scan Patient QR Code</h1>
       
       {error && (
