@@ -178,8 +178,8 @@ export default function PrescribeMedicine() {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
+      <main className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <div className="mb-4 md:mb-6">
           <button
             onClick={() => navigate('/doctor/dashboard')}
             className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
@@ -191,11 +191,11 @@ export default function PrescribeMedicine() {
           </button>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Prescribe Medicine</h2>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <div className="mb-4 md:mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Prescribe Medicine</h2>
             {patientName && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 Patient: <span className="font-medium">{patientName}</span>
               </p>
             )}
@@ -266,9 +266,9 @@ export default function PrescribeMedicine() {
               </div>
             )}
             {medicines.map((medicine, index) => (
-              <div key={medicine.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">Medicine {index + 1}</h3>
+              <div key={medicine.id} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900">Medicine {index + 1}</h3>
                   {medicines.length > 1 && (
                     <button
                       type="button"
@@ -282,7 +282,7 @@ export default function PrescribeMedicine() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Medicine Name *
@@ -371,18 +371,18 @@ export default function PrescribeMedicine() {
               Add Another Medicine
             </button>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400"
+                className="flex-1 py-2 sm:py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400"
               >
                 {isSubmitting ? 'Creating Prescription...' : 'Create Prescription'}
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/doctor/dashboard')}
-                className="px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                className="px-4 sm:px-6 py-2 sm:py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
               >
                 Cancel
               </button>

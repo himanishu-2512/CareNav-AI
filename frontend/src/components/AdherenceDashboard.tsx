@@ -125,9 +125,9 @@ export const AdherenceDashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-3 sm:p-4 md:p-6">
       {/* Back Button */}
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <button
           onClick={() => window.history.back()}
           className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
@@ -139,11 +139,11 @@ export const AdherenceDashboard: React.FC = () => {
         </button>
       </div>
 
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Adherence Dashboard</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 md:mb-6">Adherence Dashboard</h1>
 
       {/* Search Form */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <form onSubmit={handleSearch} className="flex gap-4">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 md:mb-6">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1">
             <label htmlFor="patientId" className="block text-sm font-medium text-gray-700 mb-2">
               Patient ID
@@ -153,7 +153,7 @@ export const AdherenceDashboard: React.FC = () => {
               id="patientId"
               value={patientId}
               onChange={(e) => setPatientId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
               placeholder="Enter patient ID"
               disabled={loading}
             />
@@ -162,7 +162,7 @@ export const AdherenceDashboard: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-sm sm:text-base"
             >
               {loading ? 'Loading...' : 'View Adherence'}
             </button>
@@ -178,23 +178,23 @@ export const AdherenceDashboard: React.FC = () => {
 
       {/* Adherence Data */}
       {adherenceData && (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Overall Adherence Card */}
-          <div className={`rounded-lg shadow-md p-6 border-2 ${getAdherenceBgColor(adherenceData.adherence.overall)}`}>
-            <div className="flex items-center justify-between">
+          <div className={`rounded-lg shadow-md p-4 sm:p-6 border-2 ${getAdherenceBgColor(adherenceData.adherence.overall)}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">{adherenceData.patient.name}</h2>
-                <p className="text-sm text-gray-600">Patient ID: {adherenceData.patient.patientId}</p>
-                <p className="text-sm text-gray-600 mt-1">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{adherenceData.patient.name}</h2>
+                <p className="text-xs sm:text-sm text-gray-600">Patient ID: {adherenceData.patient.patientId}</p>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   Active Medicines: {adherenceData.medicines.filter(m => m.isActive).length}
                 </p>
               </div>
               <div className="text-center">
                 {getAdherenceIcon(adherenceData.adherence.overall)}
-                <div className={`text-4xl font-bold mt-2 ${getAdherenceColor(adherenceData.adherence.overall)}`}>
+                <div className={`text-3xl sm:text-4xl font-bold mt-2 ${getAdherenceColor(adherenceData.adherence.overall)}`}>
                   {adherenceData.adherence.overall}%
                 </div>
-                <p className="text-sm text-gray-600 mt-1">Overall Adherence</p>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">Overall Adherence</p>
               </div>
             </div>
 
@@ -223,22 +223,22 @@ export const AdherenceDashboard: React.FC = () => {
 
           {/* Medicine-wise Adherence */}
           {adherenceData.medicines.length > 0 && (
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Medicine-wise Adherence</h2>
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Medicine-wise Adherence</h2>
               
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {adherenceData.medicines.map((medicine) => (
-                  <div key={medicine.medicineId} className={`p-4 rounded-lg border-2 ${getAdherenceBgColor(medicine.adherencePercentage)}`}>
-                    <div className="flex items-start justify-between mb-3">
+                  <div key={medicine.medicineId} className={`p-3 sm:p-4 rounded-lg border-2 ${getAdherenceBgColor(medicine.adherencePercentage)}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
                       <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{medicine.medicineName}</h3>
-                        <p className="text-sm text-gray-600">{medicine.dosage}</p>
+                        <h3 className="font-medium text-gray-900 text-sm sm:text-base">{medicine.medicineName}</h3>
+                        <p className="text-xs sm:text-sm text-gray-600">{medicine.dosage}</p>
                         <p className="text-xs text-gray-500 mt-1">
                           {new Date(medicine.startDate).toLocaleDateString()} - {new Date(medicine.stopDate).toLocaleDateString()}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <div className={`text-2xl font-bold ${getAdherenceColor(medicine.adherencePercentage)}`}>
+                      <div className="text-left sm:text-right">
+                        <div className={`text-xl sm:text-2xl font-bold ${getAdherenceColor(medicine.adherencePercentage)}`}>
                           {medicine.adherencePercentage}%
                         </div>
                         <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
@@ -248,18 +248,18 @@ export const AdherenceDashboard: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
                       <div>
                         <span className="text-gray-600">Scheduled:</span>
-                        <span className="ml-2 font-medium">{medicine.scheduled}</span>
+                        <span className="ml-1 sm:ml-2 font-medium">{medicine.scheduled}</span>
                       </div>
                       <div>
                         <span className="text-gray-600">Taken:</span>
-                        <span className="ml-2 font-medium text-green-600">{medicine.taken}</span>
+                        <span className="ml-1 sm:ml-2 font-medium text-green-600">{medicine.taken}</span>
                       </div>
                       <div>
                         <span className="text-gray-600">Missed:</span>
-                        <span className="ml-2 font-medium text-red-600">{medicine.missed}</span>
+                        <span className="ml-1 sm:ml-2 font-medium text-red-600">{medicine.missed}</span>
                       </div>
                     </div>
                   </div>

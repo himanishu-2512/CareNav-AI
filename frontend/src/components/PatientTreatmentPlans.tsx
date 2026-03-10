@@ -204,11 +204,11 @@ export default function PatientTreatmentPlans() {
       : editable;
 
     return (
-      <div key={medicine.medicineId} className="border border-gray-200 rounded-lg p-4 bg-white">
+      <div key={medicine.medicineId} className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-white">
         {isEditing ? (
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Medicine Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -219,12 +219,12 @@ export default function PatientTreatmentPlans() {
                   ...editingMedicine,
                   medicine: { ...editingMedicine.medicine, medicineName: e.target.value }
                 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Dosage <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -235,11 +235,11 @@ export default function PatientTreatmentPlans() {
                     ...editingMedicine,
                     medicine: { ...editingMedicine.medicine, dosage: e.target.value }
                   })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Frequency <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -249,7 +249,7 @@ export default function PatientTreatmentPlans() {
                     ...editingMedicine,
                     medicine: { ...editingMedicine.medicine, frequency: e.target.value }
                   })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 >
                   {frequencyOptions.map((option) => (
                     <option key={option} value={option}>{option}</option>
@@ -257,9 +257,9 @@ export default function PatientTreatmentPlans() {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Start Date <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -270,11 +270,11 @@ export default function PatientTreatmentPlans() {
                     ...editingMedicine,
                     medicine: { ...editingMedicine.medicine, startDate: new Date(e.target.value).toISOString() }
                   })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Stop Date <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -285,12 +285,12 @@ export default function PatientTreatmentPlans() {
                     ...editingMedicine,
                     medicine: { ...editingMedicine.medicine, stopDate: new Date(e.target.value).toISOString() }
                   })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Special Instructions</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Special Instructions</label>
               <textarea
                 value={editingMedicine.medicine.specialInstructions || ''}
                 onChange={(e) => setEditingMedicine({
@@ -298,31 +298,31 @@ export default function PatientTreatmentPlans() {
                   medicine: { ...editingMedicine.medicine, specialInstructions: e.target.value }
                 })}
                 rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 placeholder="Optional"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={handleSaveEdit}
                 disabled={savingEdit || !editingMedicine.medicine.medicineName || !editingMedicine.medicine.dosage || !editingMedicine.medicine.frequency}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400"
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 text-sm"
               >
                 {savingEdit ? 'Saving...' : 'Save'}
               </button>
               <button
                 onClick={() => setEditingMedicine(null)}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 text-sm"
               >
                 Cancel
               </button>
             </div>
           </div>
         ) : (
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div className="flex-1">
-              <h4 className="font-medium text-gray-900">{medicine.medicineName}</h4>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-600">
+              <h4 className="font-medium text-gray-900 text-sm sm:text-base">{medicine.medicineName}</h4>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600">
                 <div>
                   <span className="font-medium">Dosage:</span> {medicine.dosage}
                 </div>
@@ -335,24 +335,24 @@ export default function PatientTreatmentPlans() {
                 <div>
                   <span className="font-medium">End:</span> {new Date(medicine.stopDate).toLocaleDateString()}
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <span className="font-medium">Duration:</span> {calculateDuration(medicine.startDate, medicine.stopDate)}
                 </div>
               </div>
               {medicine.specialInstructions && (
-                <div className="mt-2 p-2 bg-blue-50 rounded text-sm text-blue-700">
+                <div className="mt-2 p-2 bg-blue-50 rounded text-xs sm:text-sm text-blue-700">
                   <span className="font-medium">Instructions:</span> {medicine.specialInstructions}
                 </div>
               )}
             </div>
             {canEditThisMedicine && (
-              <div className="flex gap-2 ml-4">
+              <div className="flex sm:flex-col gap-2 sm:ml-4">
                 <button
                   onClick={() => handleEditMedicine(medicine.treatmentPlanId || planId, medicine)}
                   className="text-blue-600 hover:text-blue-800"
                   title="Edit"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </button>
@@ -361,7 +361,7 @@ export default function PatientTreatmentPlans() {
                   className="text-red-600 hover:text-red-800"
                   title="Delete"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </button>
@@ -458,8 +458,8 @@ export default function PatientTreatmentPlans() {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
+      <main className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <div className="mb-4 md:mb-6">
           <button
             onClick={() => navigate('/doctor/dashboard')}
             className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
@@ -471,35 +471,36 @@ export default function PatientTreatmentPlans() {
           </button>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <div className="flex items-center justify-between">
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 md:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             {patient ? (
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{patient.name}</h1>
-                <p className="text-sm text-gray-600 mt-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{patient.name}</h1>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   {patient.age} years • {patient.gender} • {patient.contact}
                 </p>
               </div>
             ) : (
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Patient Treatment Plans</h1>
-                <p className="text-sm text-gray-600 mt-1">Loading patient information...</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Patient Treatment Plans</h1>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">Loading patient information...</p>
               </div>
             )}
             <button
               onClick={handleCreatePlan}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2"
+              className="px-3 sm:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2 text-sm sm:text-base whitespace-nowrap"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Create Treatment Plan
+              <span className="hidden sm:inline">Create Treatment Plan</span>
+              <span className="sm:hidden">Create Plan</span>
             </button>
           </div>
         </div>
 
         {error && (
-          <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="mb-4 md:mb-6 bg-red-50 border-l-4 border-red-400 p-4">
             <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
@@ -509,23 +510,23 @@ export default function PatientTreatmentPlans() {
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
         ) : treatmentPlans.length === 0 && (!noPlanMedicines || noPlanMedicines.prescriptions.length === 0) ? (
-          <div className="bg-white shadow rounded-lg p-12 text-center">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="bg-white shadow rounded-lg p-8 sm:p-12 text-center">
+            <svg className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             <h3 className="mt-2 text-sm font-medium text-gray-900">No treatment plans</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating a new treatment plan.</p>
-            <div className="mt-6">
+            <p className="mt-1 text-xs sm:text-sm text-gray-500">Get started by creating a new treatment plan.</p>
+            <div className="mt-4 sm:mt-6">
               <button
                 onClick={handleCreatePlan}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm sm:text-base"
               >
                 Create Treatment Plan
               </button>
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* No Plan Section */}
             {noPlanMedicines && noPlanMedicines.prescriptions.length > 0 && (
               <div className="bg-white shadow rounded-lg overflow-hidden">

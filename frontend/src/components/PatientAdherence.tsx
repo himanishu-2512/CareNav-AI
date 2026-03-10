@@ -80,8 +80,8 @@ export default function PatientAdherence() {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
+      <main className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <div className="mb-4 md:mb-6">
           <button
             onClick={() => navigate('/doctor/dashboard')}
             className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
@@ -94,7 +94,7 @@ export default function PatientAdherence() {
         </div>
 
         {error && (
-          <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="mb-4 md:mb-6 bg-red-50 border-l-4 border-red-400 p-4">
             <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
@@ -104,19 +104,19 @@ export default function PatientAdherence() {
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
         ) : adherenceData ? (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Patient Header */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex items-center justify-between">
+            <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{adherenceData.patient.name}</h1>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{adherenceData.patient.name}</h1>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
                     {adherenceData.patient.age} years • {adherenceData.patient.gender}
                   </p>
                 </div>
                 <button
                   onClick={() => navigate(`/doctor/patient/${patientId}/treatments`)}
-                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                  className="px-3 sm:px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm sm:text-base whitespace-nowrap"
                 >
                   View Treatment Plans
                 </button>
@@ -124,9 +124,9 @@ export default function PatientAdherence() {
             </div>
 
             {/* Overall Adherence */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Overall Adherence</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Overall Adherence</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 <div className={`p-4 rounded-lg border ${getWarningColor(adherenceData.adherence.warningLevel)}`}>
                   <div className="text-3xl font-bold">{adherenceData.adherence.overall}%</div>
                   <div className="text-sm mt-1">Overall Rate</div>
@@ -147,26 +147,26 @@ export default function PatientAdherence() {
             </div>
 
             {/* Medicine-wise Adherence */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Medicine-wise Adherence</h2>
+            <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Medicine-wise Adherence</h2>
               
               {adherenceData.medicines.filter(m => m.isActive).length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-md font-medium text-gray-900 mb-3">Active Medicines</h3>
+                <div className="mb-4 sm:mb-6">
+                  <h3 className="text-sm sm:text-md font-medium text-gray-900 mb-3">Active Medicines</h3>
                   <div className="space-y-3">
                     {adherenceData.medicines.filter(m => m.isActive).map((medicine) => (
-                      <div key={medicine.medicineId} className={`border rounded-lg p-4 ${getWarningColor(medicine.warningLevel)}`}>
-                        <div className="flex items-center justify-between mb-2">
+                      <div key={medicine.medicineId} className={`border rounded-lg p-3 sm:p-4 ${getWarningColor(medicine.warningLevel)}`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                           <div>
-                            <h4 className="font-medium text-gray-900">{medicine.medicineName}</h4>
-                            <p className="text-sm text-gray-600">{medicine.dosage}</p>
+                            <h4 className="font-medium text-gray-900 text-sm sm:text-base">{medicine.medicineName}</h4>
+                            <p className="text-xs sm:text-sm text-gray-600">{medicine.dosage}</p>
                           </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold">{medicine.adherencePercentage}%</div>
+                          <div className="text-left sm:text-right">
+                            <div className="text-xl sm:text-2xl font-bold">{medicine.adherencePercentage}%</div>
                             <div className="text-xs text-gray-600">Adherence</div>
                           </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div className="grid grid-cols-3 gap-2 text-xs sm:text-sm">
                           <div>
                             <span className="font-medium">Scheduled:</span> {medicine.scheduled}
                           </div>

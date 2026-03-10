@@ -189,14 +189,16 @@ export const TreatmentPlanner: React.FC = () => {
   const renderMedicineCard = (medicine: Prescription) => {
     // Read-only view - no editing allowed in TreatmentPlanner
     return (
-      <div key={medicine.medicineId} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-        <div className="flex justify-between items-start">
+      <div key={medicine.medicineId} className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-gray-50">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
           <div className="flex-1">
-            <h4 className="font-medium text-gray-900">{medicine.medicineName}</h4>
-            <p className="text-sm text-gray-600 mt-1">Dosage: {medicine.dosage}</p>
-            <p className="text-sm text-gray-600">Frequency: {medicine.frequency}</p>
-            <p className="text-sm text-gray-600">Duration: {calculateDuration(medicine.startDate, medicine.stopDate)}</p>
-            <div className="flex flex-wrap gap-2 mt-2">
+            <h4 className="font-medium text-gray-900 text-sm sm:text-base">{medicine.medicineName}</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2 mt-2">
+              <p className="text-xs sm:text-sm text-gray-600">Dosage: {medicine.dosage}</p>
+              <p className="text-xs sm:text-sm text-gray-600">Frequency: {medicine.frequency}</p>
+              <p className="text-xs sm:text-sm text-gray-600 sm:col-span-2">Duration: {calculateDuration(medicine.startDate, medicine.stopDate)}</p>
+            </div>
+            <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
               {medicine.times.map((time, index) => (
                 <span
                   key={index}
@@ -207,12 +209,12 @@ export const TreatmentPlanner: React.FC = () => {
               ))}
             </div>
             {medicine.specialInstructions && (
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-xs sm:text-sm text-gray-600 mt-2">
                 Instructions: {medicine.specialInstructions}
               </p>
             )}
             {medicine.foodTiming && medicine.foodTiming !== 'anytime' && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 Food Timing: {medicine.foodTiming}
               </p>
             )}
@@ -225,8 +227,8 @@ export const TreatmentPlanner: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="mb-6">
+      <div className="max-w-6xl mx-auto p-3 sm:p-4 md:p-6">
+        <div className="mb-4 md:mb-6">
           <button
             onClick={() => navigate('/doctor/dashboard')}
             className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
@@ -238,27 +240,27 @@ export const TreatmentPlanner: React.FC = () => {
           </button>
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Treatment Plans</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 md:mb-6">Treatment Plans</h1>
 
         {/* Search Form */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 md:mb-6">
           <form onSubmit={handleSearchPatient} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Search by Patient ID
               </label>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
                   value={searchPatientId}
                   onChange={(e) => setSearchPatientId(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                   placeholder="Enter patient ID"
                 />
                 <button
                   type="submit"
                   disabled={searching}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                  className="px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm sm:text-base whitespace-nowrap"
                 >
                   {searching ? 'Searching...' : 'Search'}
                 </button>
@@ -275,12 +277,12 @@ export const TreatmentPlanner: React.FC = () => {
 
         {/* Treatment Plans */}
         {patient && (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {/* Patient Info */}
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">{patient.name}</h2>
-                <p className="text-sm text-gray-600 mt-1">Patient ID: {patient.patientId}</p>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">{patient.name}</h2>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">Patient ID: {patient.patientId}</p>
               </div>
             </div>
 

@@ -92,9 +92,9 @@ export const PatientSummary: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-3 sm:p-4 md:p-6">
       {/* Back Button */}
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <button
           onClick={() => window.history.back()}
           className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
@@ -106,11 +106,11 @@ export const PatientSummary: React.FC = () => {
         </button>
       </div>
 
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Patient Summary</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 md:mb-6">Patient Summary</h1>
 
       {/* Search Form */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <form onSubmit={handleSearch} className="flex gap-4">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 md:mb-6">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1">
             <label htmlFor="patientId" className="block text-sm font-medium text-gray-700 mb-2">
               Patient ID
@@ -120,7 +120,7 @@ export const PatientSummary: React.FC = () => {
               id="patientId"
               value={patientId}
               onChange={(e) => setPatientId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
               placeholder="Enter patient ID"
               disabled={loading}
             />
@@ -129,7 +129,7 @@ export const PatientSummary: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-sm sm:text-base"
             >
               {loading ? 'Searching...' : 'Search'}
             </button>
@@ -145,23 +145,23 @@ export const PatientSummary: React.FC = () => {
 
       {/* Patient Information */}
       {patientDetail && (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Patient Summary - Main Section */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-6">
-            <div className="flex items-center mb-4">
-              <svg className="h-6 w-6 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-4 sm:p-6">
+            <div className="flex items-center mb-3 sm:mb-4">
+              <svg className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
                 <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
               </svg>
-              <h2 className="text-xl font-bold text-blue-900">Patient Summary</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-blue-900">Patient Summary</h2>
             </div>
 
             {/* Patient Basic Info */}
-            <div className="bg-white rounded-lg p-4 mb-4">
-              <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="bg-white rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
                 <div>
                   <p className="text-gray-600 font-medium">Name</p>
-                  <p className="text-gray-900 font-semibold">{patientDetail.patient.name}</p>
+                  <p className="text-gray-900 font-semibold break-words">{patientDetail.patient.name}</p>
                 </div>
                 <div>
                   <p className="text-gray-600 font-medium">Age / Gender</p>
@@ -169,7 +169,7 @@ export const PatientSummary: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-gray-600 font-medium">Contact</p>
-                  <p className="text-gray-900">{patientDetail.patient.contact}</p>
+                  <p className="text-gray-900 break-words">{patientDetail.patient.contact}</p>
                 </div>
               </div>
             </div>
