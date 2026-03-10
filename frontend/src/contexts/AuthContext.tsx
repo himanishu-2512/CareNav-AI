@@ -21,6 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -119,6 +120,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshUser = async () => {
+    if (!user?.userId || !token) return;
+    
+    try {
+      // Fetch fresh user data from the auth endpoint
+      const response = await authAxios.get(`/api/auth/user/${user.userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const userData = response.data.user || response.data;
+      
+      const updatedUser: User = {
+        userId: user.userId,
+        email: userData.email || user.email,
+        role: user.role,
+        name: userData.name,
+        age: userData.age,
+        dateOfBirth: userData.dateOfBirth,
+        gender: userData.gender,
+        bloodGroup: userData.bloodGroup,
+        parentName: userData.parentName,
+        contact: userData.contact,
+      };
+
+      setUser(updatedUser);
+      localStorage.setItem('carenav_user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -126,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     login,
     logout,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

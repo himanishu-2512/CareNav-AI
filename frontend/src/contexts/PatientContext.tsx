@@ -22,6 +22,7 @@ interface PatientContextType {
   invalidateCache: () => void;
   updatePatientStatus: (patientId: string, status: 'ongoing' | 'past') => void;
   removePatient: (patientId: string) => void;
+  refetchPatientDetails: (patientId: string) => Promise<void>;
 }
 
 const PatientContext = createContext<PatientContextType | undefined>(undefined);
@@ -127,6 +128,33 @@ export const PatientProvider: React.FC<PatientProviderProps> = ({ children }) =>
     setCache(new Map());
   }, []);
 
+  const refetchPatientDetails = useCallback(async (patientId: string) => {
+    try {
+      // Fetch updated patient profile
+      const response = await axios.get(`/patients/${patientId}`);
+      const updatedPatient = response.data;
+      
+      // Update the patient in the local state
+      setPatients(prev =>
+        prev.map(p => {
+          if (p.patientId === patientId) {
+            return {
+              ...p,
+              name: updatedPatient.name || p.name,
+              uhid: updatedPatient.uhid || p.uhid
+            };
+          }
+          return p;
+        })
+      );
+      
+      // Invalidate cache to ensure fresh data on next fetch
+      setCache(new Map());
+    } catch (err) {
+      console.error('Failed to refetch patient details:', err);
+    }
+  }, []);
+
   return (
     <PatientContext.Provider
       value={{
@@ -138,7 +166,8 @@ export const PatientProvider: React.FC<PatientProviderProps> = ({ children }) =>
         refreshPatients,
         invalidateCache,
         updatePatientStatus,
-        removePatient
+        removePatient,
+        refetchPatientDetails
       }}
     >
       {children}

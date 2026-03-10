@@ -1,5 +1,5 @@
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Header from './Header';
 import axiosInstance from '../lib/axios';
@@ -17,8 +17,9 @@ interface SymptomHistory {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [symptomHistory, setSymptomHistory] = useState<SymptomHistory[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -39,12 +40,20 @@ export default function Dashboard() {
     return age;
   };
 
-  // Load symptom history for patients
+  // Load symptom history for patients and refresh user data
   useEffect(() => {
-    if (user?.role === 'patient') {
-      loadSymptomHistory();
-    }
-  }, [user]);
+    const refreshData = async () => {
+      if (user?.role === 'patient') {
+        // Refresh user data when dashboard loads to get latest profile info
+        if (refreshUser) {
+          await refreshUser();
+        }
+        await loadSymptomHistory();
+      }
+    };
+    
+    refreshData();
+  }, [user?.role, location.pathname]);
 
   const loadSymptomHistory = async () => {
     setIsLoadingHistory(true);

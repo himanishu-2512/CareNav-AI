@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { usePatients } from '../contexts/PatientContext';
 import Header from './Header';
+import { Html5Qrcode } from 'html5-qrcode';
 
 interface PatientDetail {
   patient: {
@@ -72,10 +73,22 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = () => {
   const [patientSymptoms, setPatientSymptoms] = useState<any[]>([]);
   const [selectedSymptomId, setSelectedSymptomId] = useState<string>('');
   const [pendingPatientId, setPendingPatientId] = useState<string>('');
+  const [isScanning, setIsScanning] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const qrReaderElementId = 'qr-reader-doctor-dashboard';
 
   useEffect(() => {
     fetchPatients(currentPage, 20, searchQuery, statusFilter);
   }, [currentPage, statusFilter, searchQuery, fetchPatients]);
+
+  // Cleanup QR scanner on unmount
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current?.isScanning) {
+        scannerRef.current.stop().catch(console.error);
+      }
+    };
+  }, []);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -98,6 +111,8 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = () => {
         accessGrantedBy: patientId,
         trackedSymptomId: symptomId || null
       });
+      
+      // Clean up all modal states
       setShowAddPatientModal(false);
       setShowDiseaseSelectionModal(false);
       setAddPatientMode(null);
@@ -105,6 +120,14 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = () => {
       setPendingPatientId('');
       setSelectedSymptomId('');
       setPatientSymptoms([]);
+      setError(null);
+      
+      // Stop scanner if it's running
+      if (scannerRef.current?.isScanning) {
+        await scannerRef.current.stop().catch(console.error);
+        setIsScanning(false);
+      }
+      
       refreshPatients(); // Use context refresh instead of fetchPatients
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add patient');
@@ -157,6 +180,150 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = () => {
   const handleDiseaseSelection = async () => {
     if (!pendingPatientId) return;
     await handleAddPatient(pendingPatientId, selectedSymptomId || undefined);
+  };
+
+  const startQRScanning = async () => {
+    setError(null); // Clear any previous errors
+    
+    try {
+      // Check if we're on HTTPS or localhost
+      const isSecureContext = window.isSecureContext;
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      
+      if (!isSecureContext && !isLocalhost) {
+        setError('Camera access requires HTTPS. Please use a secure connection or localhost for development.');
+        return;
+      }
+
+      // First, explicitly request camera permission using getUserMedia
+      // This ensures the browser shows the permission prompt
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' } 
+        });
+        // Stop the stream immediately - we just needed to trigger the permission prompt
+        stream.getTracks().forEach(track => track.stop());
+      } catch (permissionError: any) {
+        console.error('Permission request error:', permissionError);
+        
+        // Handle permission-specific errors
+        if (permissionError.name === 'NotAllowedError' || permissionError.name === 'PermissionDeniedError') {
+          setError('Camera permission denied. Please click "Allow" when your browser asks for camera access, then try again.');
+        } else if (permissionError.name === 'NotFoundError' || permissionError.name === 'DevicesNotFoundError') {
+          setError('No camera found. Please ensure your device has a camera and try again.');
+        } else if (permissionError.name === 'NotReadableError' || permissionError.name === 'TrackStartError') {
+          setError('Camera is already in use by another application. Please close other apps using the camera and try again.');
+        } else if (permissionError.name === 'SecurityError') {
+          setError('Camera access blocked due to security settings. Please use HTTPS or localhost.');
+        } else {
+          setError(`Camera access error: ${permissionError.message || 'Unknown error'}. Please check your browser settings.`);
+        }
+        return;
+      }
+
+      // Permission granted, set scanning to true to render the div
+      setIsScanning(true);
+      
+      // Wait for the DOM to update and the element to be available
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Check if element exists
+      const element = document.getElementById(qrReaderElementId);
+      if (!element) {
+        setError('Scanner element not found. Please try again.');
+        setIsScanning(false);
+        return;
+      }
+
+      // Now start the QR scanner
+      const scanner = new Html5Qrcode(qrReaderElementId);
+      scannerRef.current = scanner;
+
+      await scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: 250 },
+        async (decodedText: string) => {
+          await handleQRScan(decodedText);
+          scanner.stop().catch(console.error);
+          setIsScanning(false);
+        },
+        (errorMessage: string) => {
+          console.log('QR scan error:', errorMessage);
+        }
+      );
+
+    } catch (err: any) {
+      console.error('Scanner start error:', err);
+      
+      // Provide specific error messages based on error type
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setError('Camera permission denied. Please allow camera access in your browser settings and try again.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setError('No camera found. Please ensure your device has a camera and try again.');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setError('Camera is already in use by another application. Please close other apps using the camera and try again.');
+      } else if (err.name === 'OverconstrainedError') {
+        setError('Camera does not meet requirements. Please try a different camera or device.');
+      } else if (err.name === 'SecurityError') {
+        setError('Camera access blocked due to security settings. Please use HTTPS or localhost.');
+      } else {
+        setError(`Failed to start camera: ${err.message || 'Unknown error'}. Please check your browser permissions.`);
+      }
+      
+      setIsScanning(false);
+    }
+  };
+
+  const stopQRScanning = async () => {
+    if (scannerRef.current?.isScanning) {
+      try {
+        await scannerRef.current.stop();
+      } catch (err) {
+        console.error('Error stopping scanner:', err);
+      }
+    }
+    setIsScanning(false);
+  };
+
+  const handleQRScan = async (qrData: string) => {
+    setAddingPatient(true);
+    setError(null);
+    try {
+      const response = await axios.post('/qr/validate', { 
+        qrData, 
+        doctorId: user?.userId 
+      });
+      
+      if (response.data.valid && response.data.patientId) {
+        const patientId = response.data.patientId;
+        setPendingPatientId(patientId);
+        
+        // Fetch patient symptoms to let doctor choose
+        try {
+          const symptomsResponse = await axios.get(`/symptoms/history/${patientId}`);
+          const symptoms = symptomsResponse.data.symptoms || [];
+          
+          if (symptoms.length > 0) {
+            setPatientSymptoms(symptoms);
+            setShowDiseaseSelectionModal(true);
+            setShowAddPatientModal(false);
+          } else {
+            // No symptoms, add patient without tracking specific disease
+            await handleAddPatient(patientId);
+          }
+        } catch (symptomsError) {
+          console.error('Failed to load symptoms:', symptomsError);
+          // Add patient anyway without disease tracking
+          await handleAddPatient(patientId);
+        }
+      } else {
+        setError('Invalid QR code');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'QR validation failed');
+    } finally {
+      setAddingPatient(false);
+    }
   };
 
   const handleDeletePatient = async (patientId: string, patientName: string) => {
@@ -454,22 +621,134 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = () => {
               <div className="space-y-3">
                 <button
                   onClick={() => setAddPatientMode('scan')}
-                  className="w-full px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="w-full px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center gap-2"
                 >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                  </svg>
                   Scan QR Code
                 </button>
                 <button
                   onClick={() => setAddPatientMode('code')}
-                  className="w-full px-4 py-3 bg-green-600 text-white rounded hover:bg-green-700"
+                  className="w-full px-4 py-3 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center gap-2"
                 >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
                   Enter Unique Code
                 </button>
                 <button
-                  onClick={() => setShowAddPatientModal(false)}
+                  onClick={async () => {
+                    if (scannerRef.current?.isScanning) {
+                      await scannerRef.current.stop().catch(console.error);
+                      setIsScanning(false);
+                    }
+                    setShowAddPatientModal(false);
+                    setAddPatientMode(null);
+                    setError(null);
+                  }}
                   className="w-full px-4 py-3 border rounded hover:bg-gray-50"
                 >
                   Cancel
                 </button>
+              </div>
+            ) : addPatientMode === 'scan' ? (
+              <div className="space-y-3">
+                {!isScanning ? (
+                  <>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Click the button below to start scanning the patient's QR code
+                    </p>
+                    
+                    {/* Requirements info box */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                      <div className="flex items-start gap-2">
+                        <svg className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <div className="text-xs text-blue-800">
+                          <p className="font-semibold mb-1">Camera Requirements:</p>
+                          <ul className="list-disc list-inside space-y-0.5">
+                            <li>HTTPS connection (or localhost for development)</li>
+                            <li>Camera permissions must be granted</li>
+                            <li>Camera not in use by other apps</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={startQRScanning}
+                      disabled={addingPatient}
+                      className="w-full px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Start Camera
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div id={qrReaderElementId} className="w-full rounded-lg overflow-hidden border-2 border-blue-500" />
+                    <p className="text-sm text-gray-600 text-center">
+                      Position the QR code within the frame
+                    </p>
+                    <button
+                      onClick={stopQRScanning}
+                      className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                      Stop Scanning
+                    </button>
+                  </>
+                )}
+                
+                {/* Error message with troubleshooting */}
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <svg className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-red-800 mb-1">Camera Error</p>
+                        <p className="text-xs text-red-700">{error}</p>
+                        
+                        {/* Troubleshooting tips */}
+                        {(error.includes('permission') || error.includes('denied')) && (
+                          <div className="mt-2 text-xs text-red-700">
+                            <p className="font-semibold mb-1">How to fix:</p>
+                            <ul className="list-disc list-inside space-y-0.5">
+                              <li>Click the camera icon in your browser's address bar</li>
+                              <li>Select "Allow" for camera access</li>
+                              <li>Refresh the page and try again</li>
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {error.includes('HTTPS') && (
+                          <div className="mt-2 text-xs text-red-700">
+                            <p className="font-semibold mb-1">Alternative:</p>
+                            <p>Use the "Enter Unique Code" option instead, or access this page via HTTPS.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {!isScanning && (
+                  <button
+                    onClick={() => {
+                      setAddPatientMode(null);
+                      setError(null);
+                    }}
+                    className="w-full px-4 py-2 border rounded hover:bg-gray-50"
+                  >
+                    Back
+                  </button>
+                )}
               </div>
             ) : addPatientMode === 'code' ? (
               <div className="space-y-3">
@@ -502,20 +781,7 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = () => {
                   </button>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-600">QR scanning will be implemented here</p>
-                <button
-                  onClick={() => {
-                    setAddPatientMode(null);
-                    setError(null);
-                  }}
-                  className="w-full px-4 py-2 border rounded hover:bg-gray-50"
-                >
-                  Back
-                </button>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       )}

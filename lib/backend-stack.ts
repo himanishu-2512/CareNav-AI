@@ -460,6 +460,7 @@ export class BackendStack extends cdk.Stack {
     registerAuthResource.addMethod('POST', authIntegration);
     logoutResource.addMethod('POST', authIntegration);
     userIdResource.addMethod('PUT', authIntegration, { authorizer });
+    userIdResource.addMethod('GET', authIntegration, { authorizer });
     
     // Protected endpoints (require authorization)
     registerResource.addMethod('POST', patientIntegration, { authorizer });

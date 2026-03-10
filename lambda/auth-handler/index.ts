@@ -43,6 +43,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return await handleLogout(event);
     } else if (path.match(/\/api\/auth\/user\/[^/]+$/) && method === 'PUT') {
       return await handleUpdateUser(event);
+    } else if (path.match(/\/api\/auth\/user\/[^/]+$/) && method === 'GET') {
+      return await handleGetUser(event);
     } else {
       return errorResponse('Not found', 404);
     }
@@ -283,10 +285,37 @@ async function handleUpdateUser(event: APIGatewayProxyEvent): Promise<APIGateway
   const updates = JSON.parse(event.body);
 
   // Import updateUser function
-  const { updateUser } = await import('../shared/auth-db');
+  const { updateUser, getUserById } = await import('../shared/auth-db');
+  const { updatePatient } = await import('../shared/patient-db');
 
   try {
+    // Update user in auth table
     const updatedUser = await updateUser(userId, updates);
+
+    // If user is a patient, also update patient table
+    if (updatedUser.role === 'patient') {
+      try {
+        // Map user fields to patient fields
+        const patientUpdates: any = {};
+        if (updates.name !== undefined) patientUpdates.name = updates.name;
+        if (updates.age !== undefined) patientUpdates.age = updates.age;
+        if (updates.gender !== undefined) patientUpdates.gender = updates.gender;
+        if (updates.contact !== undefined) patientUpdates.contact = updates.contact;
+        if (updates.dateOfBirth !== undefined) patientUpdates.dateOfBirth = updates.dateOfBirth;
+        if (updates.bloodGroup !== undefined) patientUpdates.bloodGroup = updates.bloodGroup;
+        if (updates.parentName !== undefined) patientUpdates.parentName = updates.parentName;
+
+        // Update patient record if there are patient-specific fields
+        if (Object.keys(patientUpdates).length > 0) {
+          await updatePatient(userId, patientUpdates);
+          console.log(`Patient record ${userId} updated successfully`);
+        }
+      } catch (patientError: any) {
+        console.error('Error updating patient record:', patientError);
+        // Don't fail the whole request if patient update fails
+        // The user table is already updated
+      }
+    }
 
     // Remove passwordHash from response
     const { passwordHash, ...userResponse } = updatedUser;
@@ -300,5 +329,42 @@ async function handleUpdateUser(event: APIGatewayProxyEvent): Promise<APIGateway
   } catch (error: any) {
     console.error('Error updating user:', error);
     return errorResponse(error.message || 'Failed to update user', 500);
+  }
+}
+
+/**
+ * Handle get user profile
+ */
+async function handleGetUser(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  // Extract userId from path
+  const pathParts = event.path.split('/');
+  const userId = pathParts[pathParts.length - 1];
+
+  if (!userId) {
+    return errorResponse('User ID is required', 400);
+  }
+
+  // Import getUserById function
+  const { getUserById } = await import('../shared/auth-db');
+
+  try {
+    // Get user from auth table
+    const user = await getUserById(userId);
+
+    if (!user) {
+      return errorResponse('User not found', 404);
+    }
+
+    // Remove passwordHash from response
+    const { passwordHash, ...userResponse } = user;
+
+    console.log(`User ${userId} fetched successfully`);
+
+    return successResponse({
+      user: userResponse
+    });
+  } catch (error: any) {
+    console.error('Error fetching user:', error);
+    return errorResponse(error.message || 'Failed to fetch user', 500);
   }
 }

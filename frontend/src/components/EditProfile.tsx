@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import axiosInstance from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
+import { usePatients } from '../contexts/PatientContext';
 
 export default function EditProfile() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const { refetchPatientDetails } = usePatients();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -74,6 +76,16 @@ export default function EditProfile() {
         parentName: formData.parentName,
         contact: formData.contact
       });
+      
+      // Refresh user context if available
+      if (refreshUser) {
+        await refreshUser();
+      }
+      
+      // Refetch patient details in PatientContext if user is a patient
+      if (user?.userId && user?.role === 'patient') {
+        await refetchPatientDetails(user.userId);
+      }
       
       alert('Profile updated successfully!');
       navigate('/dashboard');
